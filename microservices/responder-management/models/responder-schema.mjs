@@ -60,5 +60,6 @@ const responderSchema = new Schema({
 });
 
 responderSchema.index({ current_location: '2dsphere' });
+const responderModel = mongoose.model('responder', responderSchema);
 
-export default mongoose.model('responders', responderSchema);
+export default responderModel
