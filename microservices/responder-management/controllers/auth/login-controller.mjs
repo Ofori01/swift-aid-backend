@@ -13,7 +13,7 @@ export async function loginController(req,res,next){
         if(!responder) return res.status(400).send({message: "Email does not exist"})
         if(!comparePassword(password,responder.password)) return res.status(400).send({message: "Incorrect password"})
         
-        const token = generateToken(responder)
+        const token = generateToken({responder_id: responder.responder_id, email: responder.email, agency: responder.agency, agency_id: responder.agency_id, name: responder.name})
         return res.status(200).send({
             token, 
             responderName: responder.name, 

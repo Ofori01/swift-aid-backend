@@ -2,14 +2,24 @@ import express from 'express';
 import { configDotenv } from 'dotenv';
 import mongoose from 'mongoose';
 import { GridFSBucket } from 'mongodb';
+import { createServer } from "http";
+
 
 const app = express()
-configDotenv()
 app.use(express.json())
+const httpServer = createServer(app);
+configDotenv()
 
+
+const io = new Server(httpServer, { /* options */ });
+
+io.on("connection", (socket) => {
+  // ...
+  console.log("Socket Connected")
+});
 
 const PORT = process.env.ENVIRONMENT === 'production' ? process.env.PORT : process.env.LOCAL_PORT
-app.listen(PORT, ()=> {
+httpServer.listen(PORT, ()=> {
     console.log("Server Started")
 })
 
