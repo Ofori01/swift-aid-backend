@@ -6,10 +6,31 @@ const responderSchema = new Schema({
         type: mongoose.Schema.Types.ObjectId,
         auto : true
     },
+    email: {
+        required: true,
+        type: mongoose.Schema.Types.String,
+        unique: true
+    },
+    password: {
+        required: true,
+        type: mongoose.Schema.Types.String
+    },
+    phone: {
+        required: true,
+        type: mongoose.Schema.Types.String
+    },
     name: {
         required: true,
         type: mongoose.Schema.Types.String,
 
+    },
+    image: {
+        // required: true,
+        type: mongoose.Schema.Types.ObjectId
+    },
+    badgeNumber: {
+        required: true,
+        type: mongoose.Schema.Types.String
     },
     agency: {
         required: true,
