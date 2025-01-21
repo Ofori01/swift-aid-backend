@@ -34,6 +34,7 @@ mongoose.connect(process.env.DATABASE_URL).then(
     }
 )
 
+
 const db_connection = mongoose.connection;
 
 //Initialize Grid Bucket
@@ -44,3 +45,5 @@ db_connection.once('open',  () => {
 });
 
 export {bucket}
+
+
