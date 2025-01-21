@@ -6,4 +6,4 @@ const responders = Router();
 
 responders.get("/profile", getResponderProfile)
 
-responders.post('')
+responders.post('/updateLocation')

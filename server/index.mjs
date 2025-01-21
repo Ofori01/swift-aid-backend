@@ -3,6 +3,7 @@ import { configDotenv } from 'dotenv';
 import mongoose from 'mongoose';
 import { GridFSBucket } from 'mongodb';
 import { createServer } from "http";
+import { Server } from 'socket.io';
 
 
 const app = express()
