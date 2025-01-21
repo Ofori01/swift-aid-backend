@@ -1,6 +1,7 @@
 import express from 'express';
 import { configDotenv } from 'dotenv';
 import mongoose from 'mongoose';
+import route from '../routers/userRoute.mjs';
 
 const app = express()
 configDotenv()
@@ -19,3 +20,5 @@ mongoose.connect(process.env.DATABASE_URL).then(
         console.error("Error connecting database\n",error)
     }
 )
+
+app.use("/api/user", route)
