@@ -1,9 +1,10 @@
-import User from '../models/userSchema.mjs'
+import userModel from "../models/userSchema.mjs"
+
 
 export const getUser = async (req, res) => {
     try {
         const id = req.params.id
-        const userExists = await User.findOne({user_id:id})
+        const userExists = await userModel.findOne({user_id:id})
         if (!userExists) {
             return res.status(404).json({message: "User not found"})
         }
@@ -16,7 +17,7 @@ export const getUser = async (req, res) => {
 
 export const getUsers = async (req, res) => {
     try {
-        const users = await User.find()
+        const users = await userModel.find()
         if (users.length === 0) {
             return res.status(404).json({message: "User not found"})
         }
@@ -30,7 +31,7 @@ export const getUsers = async (req, res) => {
 export const updateUser = async (req, res) => {
     try {
         const id = req.params.id
-        const userExists = await User.findOne({user_id:id})
+        const userExists = await userModel.findOne({user_id:id})
         if (!userExists) {
             return res.status(404).json({message: "User not found"})
         }

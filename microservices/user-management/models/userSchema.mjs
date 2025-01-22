@@ -3,7 +3,8 @@ import mongoose from 'mongoose'
 const userSchema = new mongoose.Schema({
     user_id:{
         type:mongoose.Schema.Types.ObjectId,
-        required:true
+        required:true,
+        auto: true
     },
     name:{
         type:String,
@@ -38,11 +39,16 @@ const userSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         required:true
     },
-    created_at:{
+    createdAt:{
         type:mongoose.Schema.Types.Date,
-        defaut:Date.now()
+        default:Date.now()
     },
+    updatedAt: {
+        type: mongoose.Schema.Types.Date,
+        default: Date.now()
+        
+    }
 
 }, {timestamps:true})
-
-export default mongoose.model('User', userSchema)
+const userModel = mongoose.model('User', userSchema) 
+export default userModel
