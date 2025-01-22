@@ -12,7 +12,8 @@ const userSchema = new mongoose.Schema({
     },
     phone_number:{
         type:String,
-        required:true
+        required:true,
+        unique:true
     },
     role:{
         type:String,
@@ -29,7 +30,8 @@ const userSchema = new mongoose.Schema({
     },
     ghana_card_number:{
         type:String,
-        required:true
+        required:true,
+        unique:true
     },
     ghana_card_image_front:{
         type:mongoose.Schema.Types.ObjectId,
