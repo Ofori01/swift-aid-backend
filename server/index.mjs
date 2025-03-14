@@ -4,10 +4,16 @@ import mongoose from 'mongoose';
 import { GridFSBucket } from 'mongodb';
 import { createServer } from "http";
 import { Server } from 'socket.io';
+import adminRouter from '../microservices/admin-actions-dev/routes/adminRoute.mjs';
+import userRouter from '../microservices/user-management/routes/userRoute.mjs';
 
 
 const app = express()
 app.use(express.json())
+
+app.use(adminRouter)
+app.use(userRouter)
+
 const httpServer = createServer(app);
 configDotenv()
 
