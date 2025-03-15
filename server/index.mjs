@@ -4,10 +4,20 @@ import mongoose from 'mongoose';
 import { GridFSBucket } from 'mongodb';
 import { createServer } from "http";
 import { Server } from 'socket.io';
+import adminRouter from '../microservices/admin-actions-dev/routes/adminRoute.mjs';
+import userRouter from '../microservices/user-management/routes/userRoute.mjs';
+import responderAuth from '../microservices/responder-management/routes/auth.mjs';
+import responders from '../microservices/responder-management/routes/responders.mjs';
 
 
 const app = express()
 app.use(express.json())
+
+app.use(adminRouter)
+app.use(userRouter)
+app.use(responderAuth)
+app.use(responders)
+
 const httpServer = createServer(app);
 configDotenv()
 
@@ -21,7 +31,7 @@ io.on("connection", (socket) => {
 
 const PORT = process.env.ENVIRONMENT === 'production' ? process.env.PORT : process.env.LOCAL_PORT
 httpServer.listen(PORT, ()=> {
-    console.log("Server Started")
+    console.log("Server Started", `on port ${PORT} in ${process.env.ENVIRONMENT} mode`)
 })
 
 mongoose.connect(process.env.DATABASE_URL).then(

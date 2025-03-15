@@ -24,6 +24,10 @@ const responderSchema = new Schema({
         type: mongoose.Schema.Types.String,
 
     },
+    role: {
+        type:String,
+        default:"responder"
+    },
     image: {
         // required: true,
         type: mongoose.Schema.Types.ObjectId

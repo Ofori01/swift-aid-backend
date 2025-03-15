@@ -7,4 +7,6 @@ const responders = Router();
 
 responders.get("/profile", authorization("responder","admin"),getResponderProfile)
 
-responders.post('/updateLocation')
+// responders.post('/updateLocation')
+
+export default responders
