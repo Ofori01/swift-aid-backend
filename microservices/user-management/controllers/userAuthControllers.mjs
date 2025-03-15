@@ -1,4 +1,3 @@
-import { compare } from "bcryptjs"
 import { userSignupService } from "../services/user.mjs"
 import { comparePassword, generatePasswordHash } from "../../../utils/auth/pass-hash.mjs"
 import {generateToken} from "../../../utils/auth/tokens.mjs"

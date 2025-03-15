@@ -31,7 +31,7 @@ io.on("connection", (socket) => {
 
 const PORT = process.env.ENVIRONMENT === 'production' ? process.env.PORT : process.env.LOCAL_PORT
 httpServer.listen(PORT, ()=> {
-    console.log("Server Started")
+    console.log("Server Started", `on port ${PORT} in ${process.env.ENVIRONMENT} mode`)
 })
 
 mongoose.connect(process.env.DATABASE_URL).then(

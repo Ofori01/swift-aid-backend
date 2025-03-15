@@ -10,18 +10,19 @@ import {
 const adminRouter = express.Router();
 
 // View all responders under the admin’s agency
-router.get("/responders", getAllResponders);
+adminRouter.get("/responders", getAllResponders);
 
 // Get details of a single responder in the admin's agency
-router.get("/responders/:id", getResponderById);
+adminRouter.get("/responders/:id", getResponderById);
 
 //Get the agency of an admin
-router.get("/agency", getAgency);
+//! consider renaming this route to /admin/agency
+adminRouter.get("/agency", getAgency);
 
 // Add a new responder
-router.post("/responders", addResponder);
+adminRouter.post("/add/responder", addResponder);
 
 // Remove a responder
-router.delete("/responders/:id", deleteResponder);
+adminRouter.delete("/delete/responders/:id", deleteResponder);
 
 export default adminRouter;

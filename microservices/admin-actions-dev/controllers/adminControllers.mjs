@@ -45,7 +45,7 @@ export const getAgency = async (req, res) => {
 
 export const addResponder = async (req, res) => {
     try {
-        const { email, password, phone, name, badgeNumber, agency, agency_id, status, current_location } = req.body;
+        let { email, password, phone, name, badgeNumber, agency, agency_id, status, current_location } = req.body;
 
         if (!email || !password || !phone || !name || !badgeNumber || !agency || !agency_id || !status || !current_location) {
             return res.status(400).send({
