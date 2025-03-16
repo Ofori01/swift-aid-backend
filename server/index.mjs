@@ -23,7 +23,7 @@ configDotenv()
 
 
 const io = new Server(httpServer, { /* options */ });
-
+app.set("io", io);
 io.on("connection", (socket) => {
   // ...
   console.log("Socket Connected")

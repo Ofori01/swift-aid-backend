@@ -17,7 +17,8 @@ const responderSchema = new Schema({
     },
     phone: {
         required: true,
-        type: mongoose.Schema.Types.String
+        type: mongoose.Schema.Types.String,
+        unique: true
     },
     name: {
         required: true,
@@ -34,7 +35,8 @@ const responderSchema = new Schema({
     },
     badgeNumber: {
         required: true,
-        type: mongoose.Schema.Types.String
+        type: mongoose.Schema.Types.String,
+        unique: true
     },
     agency: {
         required: true,
