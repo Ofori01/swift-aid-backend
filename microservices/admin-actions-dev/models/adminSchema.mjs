@@ -16,7 +16,8 @@ const AdminSchema = new mongoose.Schema({
     },
     phone: {
         required: true,
-        type: mongoose.Schema.Types.String
+        type: mongoose.Schema.Types.String,
+        unique: true
     },
     name: {
         required: true,
@@ -31,7 +32,8 @@ const AdminSchema = new mongoose.Schema({
     },
     badgeNumber: {
         required: true,
-        type: mongoose.Schema.Types.String
+        type: mongoose.Schema.Types.String,
+        unique: true
     },
     agency: {
         required: true,
