@@ -1,33 +1,47 @@
 import mongoose from "mongoose";
 
-const adminActionSchema = new mongoose.Schema({
-    action_id: {
+const AdminSchema = new mongoose.Schema({
+    admin_id: {
         type: mongoose.Schema.Types.ObjectId,
         auto: true
     },
-    request_id: {
-        type: mongoose.Schema.Types.ObjectId,
+    email: {
         required: true,
-        ref: 'EmergencyRequest'
+        type: mongoose.Schema.Types.String,
+        unique: true
     },
-    admin_id: {
-        type: mongoose.Schema.Types.ObjectId,
+    password: {
         required: true,
-        ref: 'Admin'
+        type: mongoose.Schema.Types.String
     },
-    action: {
+    phone: {
+        required: true,
+        type: mongoose.Schema.Types.String
+    },
+    name: {
+        required: true,
+        type: mongoose.Schema.Types.String
+    },
+    role: {
         type: String,
-        enum: ['accepted', 'declined', 'reassigned'],
-        required: true
+        default: "admin"
     },
-    reason: {
-        type: String
+    image: {
+        type: mongoose.Schema.Types.ObjectId
     },
-    timestamp: {
-        type: Date,
-        default: Date.now
+    badgeNumber: {
+        required: true,
+        type: mongoose.Schema.Types.String
+    },
+    agency: {
+        required: true,
+        type: mongoose.Schema.Types.String
+    },
+    agency_id: {
+        required: true,
+        type: mongoose.Schema.Types.ObjectId
     }
-}, {timestamps:true});
+});
 
-const adminActionModel = mongoose.model('AdminActionModel', adminActionSchema);
-export default adminActionModel;
+const adminModel = mongoose.model('Admin', AdminSchema);
+export default adminModel;
