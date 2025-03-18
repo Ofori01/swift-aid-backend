@@ -1,6 +1,6 @@
-import responderModel from "../../responder-management/models/responder-schema.mjs";
-import agencySchema from "../../responder-management/models/agencies-schema.mjs";
-import { comparePassword, generatePasswordHash } from "../../../utils/auth/pass-hash.mjs"
+import responderModel from "../../../responder-management/models/responder-schema.mjs";
+import agencySchema from "../../../responder-management/models/agencies-schema.mjs";
+import { comparePassword, generatePasswordHash } from "../../../../utils/auth/pass-hash.mjs"
 
 
 export const getAllResponders = async (req, res) => {
