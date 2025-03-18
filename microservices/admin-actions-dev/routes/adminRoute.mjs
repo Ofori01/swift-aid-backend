@@ -5,7 +5,7 @@ import {
     getAgency,  
     deleteResponder, 
     addResponder 
-} from "../controllers/adminControllers.mjs";
+} from "../controllers/responders/responderControllers.mjs";
 
 const adminRouter = express.Router();
 
