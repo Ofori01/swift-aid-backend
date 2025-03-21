@@ -12,11 +12,9 @@ export async function findResponderByEmail(email){
 }
 
 
-export const getAvailableResources = async (req, res) => {
+export async function getAvailableResources(latitude, longitude) {
     try {
-        const { latitude, longitude } = req.body;
         const maxDistance = 30000; 
-
         const responders = await responderModel.find({
             status: "available",
             current_location: {
@@ -33,21 +31,19 @@ export const getAvailableResources = async (req, res) => {
             police_units: responders.filter(r => r.agency === "Police").length
         };
 
-        return res.status(200).json({
-            message: "Available responders found",
+        return {
             available_resources: resourceCounts,
             responders
-        });
+        }
     } catch (error) {
         console.error("Error fetching available resources:", error);
-        res.status(500).json({ message: "Internal server error" });
-    }
+        throw new Error("Error fetching available resources");}
 };
 
 
-export const getExactResponders = async (req, res) => {
+export async function getExactResponders(latitude, longitude, recommendedResources) {
     try {
-        const { latitude, longitude, recommendedResources } = req.body;
+        
         let assignedResponders = [];
 
         for (const [agency, count] of Object.entries(recommendedResources)) {
@@ -66,12 +62,8 @@ export const getExactResponders = async (req, res) => {
             assignedResponders.push(...responders);
         }
 
-        return res.status(200).json({
-            message: "Assigned responders based on AI recommendation",
-            assigned_responders: assignedResponders
-        });
+        return assignedResponders;
     } catch (error) {
         console.error("Error fetching exact responders:", error);
-        res.status(500).json({ message: "Internal server error" });
-    }
+        throw new Error("Error fetching exact responders");}
 };
