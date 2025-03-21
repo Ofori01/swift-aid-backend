@@ -97,8 +97,9 @@ Based on the user's description, the provided image, available resources, and hi
 7. **Estimate Response Time**: Predict the time required for responders to reach the location, considering available resources, traffic, and severity.
 
 ### **Output Format:**
-Return the response **strictly in JSON format** according to the schema provided:
-
+IMPORTANT: Output your answer strictly as a valid JSON object conforming exactly to the schema below. Do not add any extra text, explanation, markdown, or formatting.
+The JSON object must start immediately with a '{' and end with a '}'.
+Schema:
 \`\`\`json
 ${jsonSchema}
 \`\`\`
@@ -113,8 +114,7 @@ Do not include any additional explanations or formatting outside of the JSON res
             stop: null,
             response_format: { type: "json_object" }
         });
-        console.log("Ai recommendation: ", completion);
-        console.log(completion.choices[0].message);
+        console.log( JSON.parse(completion.choices[0].message.content));
         return completion;
     } catch (error) {
         console.log("Error in generating recommendation: ", error);
