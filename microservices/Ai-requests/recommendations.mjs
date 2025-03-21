@@ -2,6 +2,8 @@ import { configDotenv } from "dotenv";
 import Groq from "groq-sdk";
 configDotenv();
 
+//?might have to modify prompt and schema determine actual emergencies from fakes
+
 const groq= new Groq({apiKey: process.env.GROQ_API_KEY});
 
 
