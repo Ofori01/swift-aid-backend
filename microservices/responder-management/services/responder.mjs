@@ -10,3 +10,60 @@ export async function findResponderByEmail(email){
         throw new Error("Error finding responder by email");
     }
 }
+
+
+export async function getAvailableResources(latitude, longitude) {
+    try {
+        const maxDistance = 30000; 
+        const responders = await responderModel.find({
+            status: "available",
+            current_location: {
+                $near: {
+                    $geometry: { type: "Point", coordinates: [longitude, latitude] },
+                    $maxDistance: maxDistance
+                }
+            }
+        });
+
+        const resourceCounts = {
+            ambulances: responders.filter(r => r.agency === "Ambulance").length,
+            fire_trucks: responders.filter(r => r.agency === "Fire Service").length,
+            police_units: responders.filter(r => r.agency === "Police").length
+        };
+
+        return {
+            available_resources: resourceCounts,
+            responders
+        }
+    } catch (error) {
+        console.error("Error fetching available resources:", error);
+        throw new Error("Error fetching available resources");}
+};
+
+
+export async function getExactResponders(latitude, longitude, recommendedResources) {
+    try {
+        
+        let assignedResponders = [];
+
+        for (const [agency, count] of Object.entries(recommendedResources)) {
+            const responders = await responderModel.find({
+                status: "available",
+                agency: agency === "fire_trucks" ? "Fire Service" : 
+                        agency === "police_units" ? "Police" : "Ambulance",
+                current_location: {
+                    $near: {
+                        $geometry: { type: "Point", coordinates: [longitude, latitude] },
+                        $maxDistance: 30000 
+                    }
+                }
+            }).limit(count); // Get the exact number of responders needed
+
+            assignedResponders.push(...responders);
+        }
+
+        return assignedResponders;
+    } catch (error) {
+        console.error("Error fetching exact responders:", error);
+        throw new Error("Error fetching exact responders");}
+};
