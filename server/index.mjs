@@ -8,6 +8,7 @@ import adminRouter from '../microservices/admin-actions-dev/routes/adminRoute.mj
 import userRouter from '../microservices/user-management/routes/userRoute.mjs';
 import responderAuth from '../microservices/responder-management/routes/auth.mjs';
 import responders from '../microservices/responder-management/routes/responders.mjs';
+import emergencyRequestRouter from '../microservices/emergency-requests-management/routes/emergency-request.mjs';
 
 
 const app = express()
@@ -17,6 +18,7 @@ app.use(adminRouter)
 app.use(userRouter)
 app.use(responderAuth)
 app.use(responders)
+app.use("/emergency",emergencyRequestRouter)
 
 const httpServer = createServer(app);
 configDotenv()
