@@ -13,7 +13,8 @@ export async function getAiRecommendations(req, res) {
         const available_resources = await getAvailableResources(request.emergency_location.coordinates[1], request.emergency_location.coordinates[0]);
 
         //get recommendations based on available resources
-        const recommendations =  getRecommendation(request.description, request.image, available_resources);
+        const recommendations =  await getRecommendation(request.description, request.image, available_resources);
+        console.log(recommendations)
         res.status(201).json({ message: 'Emergency request created successfully' });
 
     } catch (error) {

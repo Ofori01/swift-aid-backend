@@ -116,8 +116,10 @@ Do not include any additional explanations or formatting outside of the JSON res
             stop: null,
             response_format: { type: "json_object" }
         });
-        console.log( JSON.parse(completion.choices[0].message.content));
-        return completion;
+        // Modified: Parse and return only the JSON response
+        const responseText = completion.choices[0].message.content.trim();
+        const parsedResponse = JSON.parse(responseText);
+        return parsedResponse;
     } catch (error) {
         console.log("Error in generating recommendation: ", error);
         throw new Error("Error in generating recommendation");
