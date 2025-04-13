@@ -3,7 +3,7 @@ import { getAvailableResources } from "../../responder-management/services/respo
 import emergencyRequestModel from "../models/emergency-request-schema.mjs";
 
 
-export async function getAiRecommendations(req, res) {
+export async function getAiRecommendations(req, res,next) {
     try {
         const {request_id} = req.body;
         //fetch request from db
@@ -13,10 +13,11 @@ export async function getAiRecommendations(req, res) {
         const available_resources = await getAvailableResources(request.emergency_location.coordinates[1], request.emergency_location.coordinates[0]);
 
         //get recommendations based on available resources
-        const recommendations =  await getRecommendation(request.description, request.image, available_resources);
-        console.log(recommendations)
-        res.status(201).json({ message: 'Emergency request created successfully' });
-
+        const recommendations =  await getRecommendation(request.description, request.image, available_resources.available_resources);
+        req.body.recommendations = recommendations
+        req.body.available_resources = available_resources;
+        next();
+        // consider saving recommendations to the database for future reference
     } catch (error) {
         console.log('Error finding getting ai recommendation',error);
         return res.status(500).json({ message: 'Error getting responders' });
