@@ -41,29 +41,32 @@ export async function getAvailableResources(latitude, longitude) {
 };
 
 
-export async function getExactResponders(latitude, longitude, recommendedResources) {
+export function filterAvailableResponders(availableResponders, recommendedResources) {
     try {
-        
-        let assignedResponders = [];
+        const agencyMap = {
+            fire_trucks: "Fire Service",
+            police_units: "Police",
+            ambulances: "Ambulance"
+        };
 
-        for (const [agency, count] of Object.entries(recommendedResources)) {
-            const responders = await responderModel.find({
-                status: "available",
-                agency: agency === "fire_trucks" ? "Fire Service" : 
-                        agency === "police_units" ? "Police" : "Ambulance",
-                current_location: {
-                    $near: {
-                        $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                        $maxDistance: 30000 
-                    }
-                }
-            }).limit(count); // Get the exact number of responders needed
+        const groupedResponders = {};
 
-            assignedResponders.push(...responders);
+        for (const key of Object.keys(recommendedResources)) {
+            const agencyName = agencyMap[key];
+
+            const responders = availableResponders.filter(
+                responder =>
+                    responder.agency === agencyName &&
+                    responder.status === "available"
+            );
+
+            groupedResponders[key] = responders;
         }
 
-        return assignedResponders;
+        return groupedResponders;
+
     } catch (error) {
-        console.error("Error fetching exact responders:", error);
-        throw new Error("Error fetching exact responders");}
-};
+        console.error("Error grouping responders:", error);
+        throw new Error("Failed to group responders");
+    }
+}
