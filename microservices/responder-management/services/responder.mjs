@@ -52,19 +52,16 @@ export function filterAvailableResponders(availableResponders, recommendedResour
         const groupedResponders = {};
 
         for (const key of Object.keys(recommendedResources)) {
-            const agencyName = agencyMap[key];
-
-            const responders = availableResponders.filter(
-                responder =>
-                    responder.agency === agencyName &&
-                    responder.status === "available"
-            );
-
-            groupedResponders[key] = responders;
+            if (recommendedResources[key] > 0) { // Only filter if recommended count is greater than 0
+                const agencyName = agencyMap[key];
+                const responders = availableResponders.responders.filter(
+                    responder => responder.agency === agencyName 
+                );
+                groupedResponders[key] = responders;
+            }
         }
 
         return groupedResponders;
-
     } catch (error) {
         console.error("Error grouping responders:", error);
         throw new Error("Failed to group responders");
