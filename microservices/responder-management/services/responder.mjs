@@ -23,7 +23,7 @@ export async function getAvailableResources(latitude, longitude) {
                     $maxDistance: maxDistance
                 }
             }
-        },{email:0, password:0, __v:0, current_location:0, status:0, created_at:0, updated_at:0, name: 0, phone: 0});
+        },{email:0, password:0, __v:0, status:0, created_at:0, updated_at:0, name: 0, phone: 0});
 
         const resourceCounts = {
             ambulances: responders.filter(r => r.agency === "Ambulance").length,
