@@ -1,5 +1,5 @@
 import { getRecommendation } from "../../Ai-requests/recommendations.mjs";
-import { getAvailableResources } from "../../responder-management/services/responder.mjs";
+import { filterAvailableResponders, getAvailableResources } from "../../responder-management/services/responder.mjs";
 import emergencyRequestModel from "../models/emergency-request-schema.mjs";
 
 
@@ -11,10 +11,12 @@ export async function getAiRecommendations(req, res,next) {
 
         //find available responders in specified range
         const available_resources = await getAvailableResources(request.emergency_location.coordinates[1], request.emergency_location.coordinates[0]);
-
+        
         //get recommendations based on available resources
         const recommendations =  await getRecommendation(request.description, request.image, available_resources.available_resources);
         req.body.recommendations = recommendations
+        console.log(filterAvailableResponders(available_resources,recommendations.recommended_resources));
+      
         req.body.available_resources = available_resources;
         next();
         // consider saving recommendations to the database for future reference
