@@ -6,6 +6,7 @@ import { createServer } from "http";
 import { Server } from 'socket.io';
 import adminRouter from '../microservices/admin-actions-dev/routes/adminRoute.mjs';
 import userRouter from '../microservices/user-management/routes/userRoute.mjs';
+import otpRouter from '../microservices/user-management/routes/otpRoute.mjs';
 import responderAuth from '../microservices/responder-management/routes/auth.mjs';
 import responders from '../microservices/responder-management/routes/responders.mjs';
 import emergencyRequestRouter from '../microservices/emergency-requests-management/routes/emergency-request.mjs';
@@ -19,6 +20,7 @@ app.use(userRouter)
 app.use(responderAuth)
 app.use(responders)
 app.use("/emergency",emergencyRequestRouter)
+app.use("/otp", otpRouter)
 
 const httpServer = createServer(app);
 configDotenv()

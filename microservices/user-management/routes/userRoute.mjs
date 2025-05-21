@@ -14,10 +14,10 @@ const uploadConfig = upload.fields([
 
 const userRouter = express.Router()
 
-userRouter.get('user/:id', getUser)
-userRouter.get('users', getUsers)
-userRouter.put('user/:id', updateUser)
-userRouter.post('user/signup',uploadConfig,userSignup)
-userRouter.post('user/login', userLogin)
+userRouter.get('/user/:id', getUser)
+userRouter.get('/users', getUsers)
+userRouter.put('/user/:id', updateUser)
+userRouter.post('/user/signup',uploadConfig,userSignup)
+userRouter.post('/user/login', userLogin)
 
 export default userRouter

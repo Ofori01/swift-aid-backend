@@ -4,6 +4,7 @@ import {generateToken} from "../../../utils/auth/tokens.mjs"
 
 export async function userSignup(req, res, next) {
     try {
+        console.log("First Pass")
         // get and check required fields
         let { name, phone_number, email, password, ghana_card_number, } = req.body
         if (!name || !phone_number || !email || !password || !ghana_card_number) {
@@ -11,6 +12,7 @@ export async function userSignup(req, res, next) {
                 message: "Please fill all fields"
             })
         }
+        console.log("Second pass")
         const ghana_card_image_back = req.files.ghana_card_image_back[0].buffer
         const ghana_card_image_front = req.files.ghana_card_image_front[0].buffer
         if(!ghana_card_image_back || !ghana_card_image_front){
@@ -18,6 +20,7 @@ export async function userSignup(req, res, next) {
                 message: "Please upload front and back images of a valid Ghana card"
             })
         }
+        console.log("Third pass")
         // create user
         password = generatePasswordHash(password)
         const newUser = await userSignupService({name, phone_number, email, password, ghana_card_number, ghana_card_image_back, ghana_card_image_front})
@@ -25,6 +28,7 @@ export async function userSignup(req, res, next) {
             message: "User created successfully",
             user: newUser
         })
+        console.log("Last pass")
     } catch (error) {
         console.log(error)
         res.status(500).send({
