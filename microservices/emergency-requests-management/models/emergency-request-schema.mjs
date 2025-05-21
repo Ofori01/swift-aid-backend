@@ -12,7 +12,7 @@ const emergencyRequestSchema = new mongoose.Schema({
     severity: {
         type: String,
         enum: ['Low', 'Medium', 'High'],
-        required: true
+        //cannot be required because when user makes a request, they may not know the severity
     },
     status: {
         type: String,
@@ -24,15 +24,39 @@ const emergencyRequestSchema = new mongoose.Schema({
         required: true,
         ref: 'User'
     },
+    image:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'image'
+    },
+    emergency_type: {
+        type: String,
+        enum: ['Medical', 'Fire', 'Crime', 'Accident', 'Other'],
+        required: true,
+        default: 'Other'
+    },
     assigned_admin_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Admin'
     },
     assigned_responders: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Responder'
+        ref: 'responder'
     }],
-    location: {
+    number_of_responders: {
+        police_service: {
+            type: Number,
+            min: 0
+        },
+        fire_service: {
+            type: Number,
+            min: 0
+        },
+        ambulance_service: {
+            type: Number,
+            min: 0
+        }
+    },
+    emergency_location: {
         type: {
             type: String,
             enum: ['Point'],
@@ -56,6 +80,6 @@ const emergencyRequestSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 emergencyRequestSchema.index({ location: '2dsphere' });
-const emergencyRequestModel = mongoose.model("EmergencyRequest", emergencyRequestSchema);
+const emergencyRequestModel = mongoose.model("emergencyRequest", emergencyRequestSchema);
 
 export default emergencyRequestModel

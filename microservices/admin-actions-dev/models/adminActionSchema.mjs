@@ -29,5 +29,5 @@ const adminActionSchema = new mongoose.Schema({
     }
 }, {timestamps:true});
 
-const adminActionModel = mongoose.model('AdminActionModel', adminActionSchema);
+const adminActionModel = mongoose.model('adminAction', adminActionSchema);
 export default adminActionModel;
