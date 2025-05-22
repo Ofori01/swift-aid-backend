@@ -18,6 +18,7 @@ export async function findUserByPhone(phone_number){
         if(!user){
             throw new Error("User not found")
         }
+        return user
     } catch (error) {
         console.log(error)
         if (error.message === "User not found") {

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { imageHandler } from "../../../utils/images/imageHandler.mjs";
+import {singleImageHandler } from "../../../utils/images/imageHandler.mjs";
 import { createEmergencyRequest } from "../controllers/create-emergency-request.mjs";
 import { getAiRecommendations } from "../controllers/get-recommendations.mjs";
 import { getDistanceMatrix } from "../../distance-matrix/get-matrix.mjs";
@@ -15,7 +15,9 @@ const emergencyRequestRouter = Router();
 
 
 
-emergencyRequestRouter.post('/create', upload.single('image'), imageHandler, createEmergencyRequest,getAiRecommendations,getDistanceMatrix)
+
+
+emergencyRequestRouter.post('/create', upload.single('image'), singleImageHandler, createEmergencyRequest,getAiRecommendations,getDistanceMatrix)
 
 
 

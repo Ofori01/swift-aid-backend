@@ -1,6 +1,7 @@
-import { userSignupService } from "../services/user.mjs"
+import { findUserByPhone, userSignupService } from "../services/user.mjs"
 import { comparePassword, generatePasswordHash } from "../../../utils/auth/pass-hash.mjs"
 import {generateToken} from "../../../utils/auth/tokens.mjs"
+import uploadToGridFS from "../../../utils/images/imageuploader.mjs"
 
 export async function userSignup(req, res, next) {
     try {
@@ -11,13 +12,16 @@ export async function userSignup(req, res, next) {
                 message: "Please fill all fields"
             })
         }
-        const ghana_card_image_back = req.files.ghana_card_image_back[0].buffer
-        const ghana_card_image_front = req.files.ghana_card_image_front[0].buffer
-        if(!ghana_card_image_back || !ghana_card_image_front){
+
+        //upload ghana card images to database
+        if (!req.files || !req.files.ghana_card_image_back || !req.files.ghana_card_image_front) {
             return res.status(400).send({
                 message: "Please upload front and back images of a valid Ghana card"
             })
         }
+        const ghana_card_image_back = await uploadToGridFS(req.files.ghana_card_image_back[0]) 
+        const ghana_card_image_front = await uploadToGridFS(req.files.ghana_card_image_front[0]) 
+        
         // create user
         password = generatePasswordHash(password)
         const newUser = await userSignupService({name, phone_number, email, password, ghana_card_number, ghana_card_image_back, ghana_card_image_front})
@@ -43,6 +47,11 @@ export async function userLogin(req,res,next){
             })
         }
         const user = await findUserByPhone(phone_number)
+        if(!user){
+            return res.status(401).send({
+                message: "Invalid phone number"
+            })
+        }
         if(!comparePassword(password,user.password)){
             return res.status(401).send({
                 message: "Invalid phone number or password"
@@ -60,8 +69,9 @@ export async function userLogin(req,res,next){
             }
         })
     } catch (error) {
+        console.log(error)
         return res.status(500).send({
-            message: error.message
+            message: "An Error occurred while logging in. Please try again later"
         })
         
     }
