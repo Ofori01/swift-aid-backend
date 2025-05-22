@@ -62,7 +62,7 @@ const schema = {
     const jsonSchema = JSON.stringify(schema, null, 4);
     try {
         const completion = await groq.chat.completions.create({
-            model: "llama-3.2-11b-vision-preview",
+            model: "meta-llama/llama-4-scout-17b-16e-instruct",
             messages: [
                 {
                     role: "user",
@@ -82,31 +82,22 @@ const schema = {
                 },
                 {
                     role: "user",
-                    content: `You are an AI emergency response assistant responsible for analyzing emergency requests. 
-                
-Based on the user's description, the provided image, available resources, and historical data, assess the severity of the incident and determine the necessary resources required for response. Use historical emergency patterns to support your decision-making.
-
-### **Instructions:**
-1. **Analyze the Emergency Description & Image**: Extract key details such as the number of people involved, type of incident, and potential threats.
-2. **Consider Available Resources**: Allocate resources **efficiently** based on the current availability:
-   - Available Ambulances: ${resources.ambulances}
-   - Available Fire Trucks: ${resources.fire_trucks}
-   - Available Police Units: ${resources.police_units}
-3. **Assign a Severity Level**: Classify the emergency as "Low", "Medium", "High", or "Critical" based on urgency and risk factors.
-4. **Recommend Resources**: Allocate ambulances, fire trucks, and police units based on the severity, historical patterns, and available resources.
-5. **Provide Justification**: Explain why the severity level and resource recommendations were chosen.
-6. **Assign a Priority Score (1-100)**: Indicate the urgency of the request (higher values mean higher priority).
-7. **Estimate Response Time**: Predict the time required for responders to reach the location, considering available resources, traffic, and severity.
-
-### **Output Format:**
-IMPORTANT: Output your answer strictly as a valid JSON object conforming exactly to the schema below. Do not add any extra text, explanation, markdown, or formatting.
-The JSON object must start immediately with a '{' and end with a '}'.
-Schema:
-\`\`\`json
-${jsonSchema}
-\`\`\`
-
-Do not include any additional explanations or formatting outside of the JSON response.`
+                    content: `You are an AI emergency response assistant responsible for analyzing emergency requests.
+Based on the user's description, the provided image, available resources, and historical data, assess the incident's severity and determine the necessary resources.
+Instructions:
+1. Analyze the emergency description and image.
+2. Consider available resources:
+   - Ambulances: ${resources.ambulances}
+   - Fire Trucks: ${resources.fire_trucks}
+   - Police Units: ${resources.police_units}
+3. Classify the emergency as "Low", "Medium", "High", or "Critical".
+4. Recommend the number of ambulances, fire trucks, and police units.
+5. Provide a justification.
+6. Assign a priority score (1-100).
+7. Estimate response time in minutes.
+Output Format:
+Output a valid JSON object that conforms exactly to the following schema. Do not include any markdown formatting or extra text.
+Schema: ${jsonSchema}`
                 }
             ],
             temperature: 1,
@@ -116,8 +107,9 @@ Do not include any additional explanations or formatting outside of the JSON res
             stop: null,
             response_format: { type: "json_object" }
         });
-        console.log( JSON.parse(completion.choices[0].message.content));
-        return completion;
+        const responseText = completion.choices[0].message.content.trim();
+        const parsedResponse = JSON.parse(responseText);
+        return parsedResponse;
     } catch (error) {
         console.log("Error in generating recommendation: ", error);
         throw new Error("Error in generating recommendation");
