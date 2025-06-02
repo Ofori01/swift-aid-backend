@@ -23,7 +23,7 @@ export async function getAvailableResources(latitude, longitude) {
                     $maxDistance: maxDistance
                 }
             }
-        },{email:0, password:0, __v:0, current_location:0, status:0, created_at:0, updated_at:0, name: 0, phone: 0});
+        },{email:0, password:0, __v:0, status:0, created_at:0, updated_at:0, name: 0, phone: 0});
 
         const resourceCounts = {
             ambulances: responders.filter(r => r.agency === "Ambulance").length,
@@ -41,29 +41,29 @@ export async function getAvailableResources(latitude, longitude) {
 };
 
 
-export async function getExactResponders(latitude, longitude, recommendedResources) {
+export function filterAvailableResponders(availableResponders, recommendedResources) {
     try {
-        
-        let assignedResponders = [];
+        const agencyMap = {
+            fire_trucks: "Fire Service",
+            police_units: "Police",
+            ambulances: "Ambulance"
+        };
 
-        for (const [agency, count] of Object.entries(recommendedResources)) {
-            const responders = await responderModel.find({
-                status: "available",
-                agency: agency === "fire_trucks" ? "Fire Service" : 
-                        agency === "police_units" ? "Police" : "Ambulance",
-                current_location: {
-                    $near: {
-                        $geometry: { type: "Point", coordinates: [longitude, latitude] },
-                        $maxDistance: 30000 
-                    }
-                }
-            }).limit(count); // Get the exact number of responders needed
+        const groupedResponders = {};
 
-            assignedResponders.push(...responders);
+        for (const key of Object.keys(recommendedResources)) {
+            if (recommendedResources[key] > 0) { // Only filter if recommended count is greater than 0
+                const agencyName = agencyMap[key];
+                const responders = availableResponders.responders.filter(
+                    responder => responder.agency === agencyName 
+                );
+                groupedResponders[key] = responders;
+            }
         }
 
-        return assignedResponders;
+        return groupedResponders;
     } catch (error) {
-        console.error("Error fetching exact responders:", error);
-        throw new Error("Error fetching exact responders");}
-};
+        console.error("Error grouping responders:", error);
+        throw new Error("Failed to group responders");
+    }
+}
