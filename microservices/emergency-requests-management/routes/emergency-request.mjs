@@ -4,6 +4,7 @@ import {singleImageHandler } from "../../../utils/images/imageHandler.mjs";
 import { createEmergencyRequest } from "../controllers/create-emergency-request.mjs";
 import { getAiRecommendations } from "../controllers/get-recommendations.mjs";
 import { getDistanceMatrix } from "../../distance-matrix/get-matrix.mjs";
+import { imageDownloader } from "../../../utils/images/imageDownloader.mjs";
 
 
 //memory storage for multer
@@ -18,6 +19,7 @@ const emergencyRequestRouter = Router();
 
 
 emergencyRequestRouter.post('/create', upload.single('image'), singleImageHandler, createEmergencyRequest,getAiRecommendations,getDistanceMatrix)
+emergencyRequestRouter.get('/image/:id',imageDownloader)
 
 
 
