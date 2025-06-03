@@ -1,19 +1,20 @@
 import { comparePassword } from "../../../../utils/auth/pass-hash.mjs";
 import { generateToken } from "../../../../utils/auth/tokens.mjs";
+import { findResponderByBadgeNumber } from "../../services/responder.mjs";
 
 
 export async function loginController(req,res,next){
     try {
-        const {email, password} = req.body;
-        if(!email || !password){
+        const {badgeNumber, password} = req.body;
+        if(!badgeNumber || !password){
             return res.status(400).send({message: "Email and password are required"});
         }
-        const responder = await findResponderByEmail(email);
+        const responder = await findResponderByBadgeNumber(badgeNumber);
 
-        if(!responder) return res.status(400).send({message: "Email does not exist"})
+        if(!responder) return res.status(400).send({message: `Responder with badge Number ${number} does not exist`})
         if(!comparePassword(password,responder.password)) return res.status(400).send({message: "Incorrect password"})
         
-        const token = generateToken({responder_id: responder.responder_id, email: responder.email, agency: responder.agency, agency_id: responder.agency_id, name: responder.name})
+        const token = generateToken({responder_id: responder.responder_id, email: responder.badgeNumber, agency: responder.agency, agency_id: responder.agency_id, name: responder.name})
         return res.status(200).send({
             token, 
             responderName: responder.name, 

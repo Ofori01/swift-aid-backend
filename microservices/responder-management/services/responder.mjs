@@ -11,6 +11,17 @@ export async function findResponderByEmail(email){
     }
 }
 
+export async function findResponderByBadgeNumber(number){
+    try {
+        const responder  = await responderModel.findOne({badgeNumber: number})
+        return responder
+        
+    } catch (error) {
+        throw new Error("Error finding responder")
+        
+    }
+}
+
 
 export async function getAvailableResources(latitude, longitude) {
     try {

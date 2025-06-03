@@ -17,8 +17,8 @@ app.use(express.json())
 
 app.use(adminRouter)
 app.use(userRouter)
-app.use(responderAuth)
-app.use(responders)
+app.use('/responders/auth',responderAuth)
+app.use('/responders',responders)
 app.use("/emergency",emergencyRequestRouter)
 app.use("/otp", otpRouter)
 
