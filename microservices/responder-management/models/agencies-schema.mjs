@@ -6,8 +6,8 @@ const agencySchema = new mongoose.Schema({
         auto : true
     },
     admin_id: {
-        required: true,
-        type: mongoose.Schema.Types.ObjectId
+        type: mongoose.Schema.Types.ObjectId,
+        required: true
     },
     name: {
         required: true,
@@ -17,9 +17,11 @@ const agencySchema = new mongoose.Schema({
         required: true,
         type: mongoose.Schema.Types.String
     },
-    responders: {
+    agency_type: {
         required: true,
-        type: mongoose.Schema.Types.Array
+        type: String,
+        enum : ['Police', 'Fire service', 'Ambulance', 'Nadmo']
+
     },
     location: {
         type: {

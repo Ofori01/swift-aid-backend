@@ -44,7 +44,9 @@ const responderSchema = new Schema({
     },
     agency_id: {
         required: true,
-        type: mongoose.Schema.Types.String
+        type: mongoose.Schema.Types.String,
+        ref: 'agencies'
+
     },
     status: {
         required: true,
