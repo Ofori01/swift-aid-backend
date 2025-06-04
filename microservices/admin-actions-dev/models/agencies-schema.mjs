@@ -20,7 +20,7 @@ const agencySchema = new mongoose.Schema({
     agency_type: {
         required: true,
         type: String,
-        enum : ['Police', 'Fire service', 'Ambulance', 'Nadmo']
+        enum : ['Police', 'Fire Service', 'Ambulance', 'Nadmo']
 
     },
     location: {
@@ -39,4 +39,6 @@ const agencySchema = new mongoose.Schema({
 
 agencySchema.index({ location: '2dsphere' });
 
-export default mongoose.model('agencies', agencySchema);
+const agencyModel = mongoose.model('agencies', agencySchema);
+
+export default agencyModel

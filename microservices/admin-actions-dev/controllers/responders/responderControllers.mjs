@@ -1,6 +1,6 @@
 import responderModel from "../../../responder-management/models/responder-schema.mjs";
-import agencySchema from "../../../responder-management/models/agencies-schema.mjs";
 import { comparePassword, generatePasswordHash } from "../../../../utils/auth/pass-hash.mjs"
+import agencyModel from "../../models/agencies-schema.mjs";
 
 
 export const getAllResponders = async (req, res) => {
@@ -30,7 +30,7 @@ export const getResponderById = async (req, res) => {
 export const getAgency = async (req, res) => {
     try {
         const adminId = req.user.user_id;
-        const agency = await agencySchema.findOne({ admin_id: adminId });
+        const agency = await agencyModel.findOne({ admin_id: adminId });
 
         if (!agency) {
             return res.status(404).json({ message: "Agency not found" });

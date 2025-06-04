@@ -34,14 +34,6 @@ const AdminSchema = new mongoose.Schema({
         required: true,
         type: mongoose.Schema.Types.String,
         unique: true
-    },
-    agency: {
-        required: true,
-        type: mongoose.Schema.Types.String
-    },
-    agency_id: {
-        required: true,
-        type: mongoose.Schema.Types.ObjectId
     }
 });
 

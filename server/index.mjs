@@ -15,7 +15,7 @@ import emergencyRequestRouter from '../microservices/emergency-requests-manageme
 const app = express()
 app.use(express.json())
 
-app.use(adminRouter)
+app.use('/admin',adminRouter)
 app.use(userRouter)
 app.use('/responders/auth',responderAuth)
 app.use('/responders',responders)

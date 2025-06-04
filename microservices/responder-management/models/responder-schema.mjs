@@ -51,21 +51,24 @@ const responderSchema = new Schema({
     status: {
         required: true,
         type: mongoose.Schema.Types.String,
-        enum: ['available', 'unavailable']
+        enum: ['available', 'unavailable'],
+        index: true
     },
     current_location: {
         type: {
             type: String,
             enum: ['Point'],
             required: true,
-            default: 'Point'
+            default: 'Point',
+            index: true
         },
         coordinates: {
             type: [Number],
-            required: true
+            required: true,
+            index: true
         }
     }
-});
+}, );
 
 responderSchema.index({ current_location: '2dsphere' });
 const responderModel = mongoose.model('responder', responderSchema);
