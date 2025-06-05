@@ -30,7 +30,7 @@ const emergencyRequestSchema = new mongoose.Schema({
     },
     emergency_type: {
         type: String,
-        enum: ['Medical', 'Fire', 'Crime', 'Accident', 'Other'],
+        enum: ['Medical', 'Fire', 'Crime', 'Accident', 'Other', "Violence", "Rescue"],
         required: true,
         default: 'Other'
     },
