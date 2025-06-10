@@ -10,6 +10,7 @@ import otpRouter from '../microservices/user-management/routes/otpRoute.mjs';
 import responderAuth from '../microservices/responder-management/routes/auth.mjs';
 import responders from '../microservices/responder-management/routes/responders.mjs';
 import emergencyRequestRouter from '../microservices/emergency-requests-management/routes/emergency-request.mjs';
+import { joinRoomEvent, notifyOnAcceptance, updateEtaEvent } from '../utils/socket-io/events.mjs';
 
 
 const app = express()
@@ -31,6 +32,10 @@ app.set("io", io);
 io.on("connection", (socket) => {
   // ...
   console.log("Socket Connected")
+  //.. socket events
+  joinRoomEvent(socket)
+  updateEtaEvent(socket)
+  notifyOnAcceptance(socket)
 });
 
 const PORT = process.env.ENVIRONMENT === 'production' ? process.env.PORT : process.env.LOCAL_PORT
@@ -58,6 +63,6 @@ db_connection.once('open',  () => {
     bucket = new GridFSBucket(db_connection.db, { bucketName: 'uploads' });
 });
 
-export {bucket}
+export {bucket, io}
 
 
