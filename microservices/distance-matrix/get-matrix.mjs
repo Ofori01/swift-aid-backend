@@ -49,7 +49,11 @@ export async function getDistanceMatrix(req, res, next) {
         if(selectedResponders){
             const response = {
                 responders : selectedResponders,
-                emergency_id : req.request_id, 
+                emergency_id : req.body.request_id, 
+                emergency_details: {
+                    emergency_type: req.body.emergency_type,
+                    emergency_description : req.body.user_description
+                }
             }
 
             res.status(200).send({message: "Emergency request created successfully. We will notify you on help headed your way!", response})
