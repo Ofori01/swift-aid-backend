@@ -42,13 +42,17 @@ export async function getDistanceMatrix(req, res, next) {
             }));
         }
         // res.json({ selectedResponders });
-        console.log("selected responders from distance matrix", selectedResponders)
 
         //! notify all responders using socket io and add emergency details
 
 
         if(selectedResponders){
-            res.status(200).send({message: "Emergency request created successfully. We will notify you on help headed your way!"})
+            const response = {
+                responders : selectedResponders,
+                emergency_id : req.request_id, 
+            }
+
+            res.status(200).send({message: "Emergency request created successfully. We will notify you on help headed your way!", response})
         }
     } catch (error) {
         res.status(500).json({ message: 'Error calculating distance matrix', error });
