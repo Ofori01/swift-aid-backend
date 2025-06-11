@@ -5,7 +5,6 @@ configDotenv();
 
 export async function getDistanceMatrix(req, res, next) {
     const { recommendations, available_resources, emergency_location } = req.body;
-    console.log(recommendations, emergency_location);
     googleDistanceMatrix.key(process.env.DISTANCE_MATRIX_KEY)
     
     try {
@@ -24,7 +23,7 @@ export async function getDistanceMatrix(req, res, next) {
                     else resolve(result);
                 });
             });
-            console.log('Distance Matrix response:', JSON.stringify(distanceMatrix, null, 2));
+            // console.log('Distance Matrix response:', JSON.stringify(distanceMatrix, null, 2));
             
             const respondersWithTime = responders.map((responder, i) => {
                 const element = distanceMatrix.rows[i]?.elements[0];
@@ -35,15 +34,24 @@ export async function getDistanceMatrix(req, res, next) {
                 return { responder, travelTime };
             });
             respondersWithTime.sort((a, b) => a.travelTime - b.travelTime);
-            console.log(respondersWithTime)
             
             const count = recommendations.recommended_resources[agency] || 0;
-            selectedResponders[agency] = respondersWithTime.slice(0, count).map(item => item.responder);
+            selectedResponders[agency] = respondersWithTime.slice(0, count).map(item => ({
+                ...item.responder._doc,
+                travelTime: item.travelTime
+            }));
         }
         // res.json({ selectedResponders });
-        console.log('Selected Responders:', selectedResponders);
+        console.log("selected responders from distance matrix", selectedResponders)
+
+        //! notify all responders using socket io and add emergency details
+
+
+        if(selectedResponders){
+            res.status(200).send({message: "Emergency request created successfully. We will notify you on help headed your way!"})
+        }
     } catch (error) {
         res.status(500).json({ message: 'Error calculating distance matrix', error });
-        console.error('Error calculating distance matrix:', error);
+        console.error('Error Finding responders close to you. Please try again later:', error);
     }
 }
