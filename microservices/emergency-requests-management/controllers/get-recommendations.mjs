@@ -12,6 +12,7 @@ export async function getAiRecommendations(req, res,next) {
 
         //find available responders in specified range
         const available_resources = await getAvailableResources(request.emergency_location.coordinates[1], request.emergency_location.coordinates[0]);
+        // console.log("Available Resources 30km", available_resources )
         if (!available_resources){
             throw new Error("Available responders not found 30km around emergency location")
         }
@@ -19,8 +20,12 @@ export async function getAiRecommendations(req, res,next) {
         
         //get recommendations based on available resources
         const recommendations =  await getRecommendation(request.description, request.image, available_resources.available_resources);
+
+        // console.log("AI recommendations", recommendations)
         req.body.recommendations = recommendations
         req.body.available_resources = filterAvailableResponders(available_resources,recommendations.recommended_resources);
+
+        // console.log("Filtered Responders",req.body.available_resources)
         next();
         //! consider saving recommendations to the database for future reference
     } catch (error) {

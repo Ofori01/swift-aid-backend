@@ -52,7 +52,8 @@ export async function getDistanceMatrix(req, res, next) {
                 emergency_id : req.body.request_id, 
                 emergency_details: {
                     emergency_type: req.body.emergency_type,
-                    emergency_description : req.body.user_description
+                    emergency_description : req.body.user_description,
+                    emergency_location: req.body.emergency_location
                 }
             }
 
