@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getAllResponders, getResponderProfile } from "../controllers/responders/responder-controller.mjs";
+import { getAllResponders, getResponderProfile, updateResponderStatus } from "../controllers/responders/responder-controller.mjs";
 import { authorization } from "../../../utils/auth/authorization.mjs";
 
 
@@ -9,6 +9,8 @@ responders.get("/profile", authorization("responder","admin"),getResponderProfil
 
 responders.get('/all',getAllResponders)
 
-// responders.post('/updateLocation')
+responders.put('/update-status', authorization('responder'),updateResponderStatus)
+
+// responders.post('/updateLocation', authorization('responder'), )
 
 export default responders

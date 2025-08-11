@@ -11,10 +11,10 @@ export async function loginController(req,res,next){
         }
         const responder = await findResponderByBadgeNumber(badgeNumber);
 
-        if(!responder) return res.status(400).send({message: `Responder with badge Number ${number} does not exist`})
+        if(!responder) return res.status(400).send({message: `Responder with badge Number ${badgeNumber} does not exist`})
         if(!comparePassword(password,responder.password)) return res.status(400).send({message: "Incorrect password"})
         
-        const token = generateToken({responder_id: responder.responder_id, email: responder.badgeNumber, agency: responder.agency, agency_id: responder.agency_id, name: responder.name})
+        const token = generateToken({responder_id: responder.responder_id, badgeNumber: responder.badgeNumber, agency: responder.agency, agency_id: responder.agency_id, name: responder.name, role: responder.role})
         return res.status(200).send({
             token, 
             responderName: responder.name, 

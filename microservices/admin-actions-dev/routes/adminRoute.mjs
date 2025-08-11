@@ -32,4 +32,8 @@ adminRouter.post('/agency', createAgency)
 //add admin
 adminRouter.post('/add', addAdmin)
 
+
+//dashboard
+adminRouter.get("/dashboard",)
+
 export default adminRouter;

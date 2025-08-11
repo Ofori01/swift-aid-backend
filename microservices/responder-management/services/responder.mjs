@@ -39,7 +39,7 @@ export async function getAvailableResources(latitude, longitude) {
         const resourceCounts = {
             ambulances: responders.filter(r => r.agency === "Ambulance").length,
             fire_trucks: responders.filter(r => r.agency === "Fire Service").length,
-            police_units: responders.filter(r => r.agency === "Police").length
+            police_units: responders.filter(r => r.agency === "Police").length 
         };
 
         return {

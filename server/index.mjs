@@ -27,7 +27,12 @@ const httpServer = createServer(app);
 configDotenv()
 
 
-const io = new Server(httpServer, { /* options */ });
+const io = new Server(httpServer, { 
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+ });
 app.set("io", io);
 io.on("connection", (socket) => {
   // ...
