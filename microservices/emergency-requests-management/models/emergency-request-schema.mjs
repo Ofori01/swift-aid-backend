@@ -12,7 +12,7 @@ const emergencyRequestSchema = new mongoose.Schema(
     },
     severity: {
       type: String,
-      enum: ["Low", "Medium", "High"],
+      enum: ["Low", "Medium", "High", "Critical"],
       //cannot be required because when user makes a request, they may not know the severity
     },
     status: {
@@ -43,22 +43,26 @@ const emergencyRequestSchema = new mongoose.Schema(
       required: true,
       default: "Other",
     },
-    assigned_admin_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin",
-    },
     assigned_responders: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "responder",
       },
     ],
+    assigned_admin_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "admin",
+    },
+    admin_notes: {
+      type: String,
+    },
     selected_responders: {
       ambulances: [
         {
           responder_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "responder",
+            index: true,
           },
           travelTime: Number,
           routeType: {
@@ -72,6 +76,7 @@ const emergencyRequestSchema = new mongoose.Schema(
           responder_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "responder",
+            index: true,
           },
           travelTime: Number,
           routeType: {
@@ -85,6 +90,7 @@ const emergencyRequestSchema = new mongoose.Schema(
           responder_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "responder",
+            index: true,
           },
           travelTime: Number,
           routeType: {

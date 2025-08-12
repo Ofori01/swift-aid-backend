@@ -1,73 +1,82 @@
-import express from 'express';
-import { configDotenv } from 'dotenv';
-import mongoose from 'mongoose';
-import { GridFSBucket } from 'mongodb';
+import express from "express";
+import { configDotenv } from "dotenv";
+import mongoose from "mongoose";
+import { GridFSBucket } from "mongodb";
 import { createServer } from "http";
-import { Server } from 'socket.io';
-import adminRouter from '../microservices/admin-actions-dev/routes/adminRoute.mjs';
-import userRouter from '../microservices/user-management/routes/userRoute.mjs';
-import otpRouter from '../microservices/user-management/routes/otpRoute.mjs';
-import responderAuth from '../microservices/responder-management/routes/auth.mjs';
-import responders from '../microservices/responder-management/routes/responders.mjs';
-import emergencyRequestRouter from '../microservices/emergency-requests-management/routes/emergency-request.mjs';
-import { joinRoomEvent, notifyOnAcceptance, updateEtaEvent } from '../utils/socket-io/events.mjs';
+import { Server } from "socket.io";
+import adminRouter from "../microservices/admin-actions-dev/routes/adminRoutes.mjs";
+import adminAuthRouter from "../microservices/admin-actions-dev/routes/adminAuthRoutes.mjs";
+import userRouter from "../microservices/user-management/routes/userRoute.mjs";
+import otpRouter from "../microservices/user-management/routes/otpRoute.mjs";
+import responderAuth from "../microservices/responder-management/routes/auth.mjs";
+import responders from "../microservices/responder-management/routes/responders.mjs";
+import emergencyRequestRouter from "../microservices/emergency-requests-management/routes/emergency-request.mjs";
+import {
+  joinRoomEvent,
+  notifyOnAcceptance,
+  updateEtaEvent,
+} from "../utils/socket-io/events.mjs";
 
+const app = express();
+app.use(express.json());
 
-const app = express()
-app.use(express.json())
+// Admin routes
+app.use("/admin/auth", adminAuthRouter);
+app.use("/admin", adminRouter);
 
-app.use('/admin',adminRouter)
-app.use(userRouter)
-app.use('/responders/auth',responderAuth)
-app.use('/responders',responders)
-app.use("/emergency",emergencyRequestRouter)
-app.use("/otp", otpRouter)
+// Other routes
+app.use(userRouter);
+app.use("/responders/auth", responderAuth);
+app.use("/responders", responders);
+app.use("/emergency", emergencyRequestRouter);
+app.use("/otp", otpRouter);
 
 const httpServer = createServer(app);
-configDotenv()
+configDotenv();
 
-
-const io = new Server(httpServer, { 
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
- });
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
 app.set("io", io);
 io.on("connection", (socket) => {
   // ...
-  console.log("Socket Connected")
+  console.log("Socket Connected");
   //.. socket events
-  joinRoomEvent(socket)
-  updateEtaEvent(socket)
-  notifyOnAcceptance(socket)
+  joinRoomEvent(socket);
+  updateEtaEvent(socket);
+  notifyOnAcceptance(socket);
 });
 
-const PORT = process.env.ENVIRONMENT === 'production' ? process.env.PORT : process.env.LOCAL_PORT
-httpServer.listen(PORT, ()=> {
-    console.log("Server Started", `on port ${PORT} in ${process.env.ENVIRONMENT} mode`)
-})
+const PORT =
+  process.env.ENVIRONMENT === "production"
+    ? process.env.PORT
+    : process.env.LOCAL_PORT;
+httpServer.listen(PORT, () => {
+  console.log(
+    "Server Started",
+    `on port ${PORT} in ${process.env.ENVIRONMENT} mode`
+  );
+});
 
-mongoose.connect(process.env.DATABASE_URL).then(
-    ()=>{
-        console.log('Database connected Successfully')
-    }
-).catch(
-    (error)=>{
-        console.error("Error connecting database\n",error)
-    }
-)
-
+mongoose
+  .connect(process.env.DATABASE_URL)
+  .then(() => {
+    console.log("Database connected Successfully");
+  })
+  .catch((error) => {
+    console.error("Error connecting database\n", error);
+  });
 
 const db_connection = mongoose.connection;
 
 //Initialize Grid Bucket
 let bucket;
 
-db_connection.once('open',  () => {
-    bucket = new GridFSBucket(db_connection.db, { bucketName: 'uploads' });
+db_connection.once("open", () => {
+  bucket = new GridFSBucket(db_connection.db, { bucketName: "uploads" });
 });
 
-export {bucket, io}
-
-
+export { bucket, io };
