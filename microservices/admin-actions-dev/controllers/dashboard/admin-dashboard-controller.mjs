@@ -37,10 +37,11 @@ export async function getDashboardInfo(req, res) {
       totalResponders,
       availableResponders,
       unavailableResponders,
-      emergenciesLast30Days,
-      emergenciesLast7Days,
-      emergenciesLast3Months,
-      monthlyEmergencies,
+      emergenciesTrendToday,
+      emergenciesTrendLast30Days,
+      emergenciesTrendLast7Days,
+      emergenciesTrendLast3Months,
+      emergenciesTrendCurrentMonth,
       agencyResponders,
       recentEmergencies,
       responseTimeStats,
@@ -62,17 +63,12 @@ export async function getDashboardInfo(req, res) {
         status: "unavailable",
       }),
 
-      // Emergencies in last 30 days involving agency responders
-      getAgencyEmergenciesCount(agencyId, thirtyDaysAgo),
-
-      // Emergencies in last 7 days
-      getAgencyEmergenciesCount(agencyId, sevenDaysAgo),
-
-      // Emergencies in last 3 months
-      getAgencyEmergenciesCount(agencyId, threeMonthsAgo),
-
-      // Monthly emergencies for current month
-      getAgencyEmergenciesCount(agencyId, currentMonth),
+      // Emergencies trend data (daily breakdown) for charts
+      getEmergenciesTodayTrend(agencyId),
+      getEmergenciesTrendData(agencyId, 30),
+      getEmergenciesTrendData(agencyId, 7),
+      getEmergenciesTrendData(agencyId, 90),
+      getEmergenciesTrendData(agencyId, new Date().getDate()),
 
       // All responders in agency with basic info
       responderModel
@@ -115,10 +111,32 @@ export async function getDashboardInfo(req, res) {
         estimated_vehicles: vehicleCount,
       },
       emergencies: {
-        last_30_days: emergenciesLast30Days,
-        last_7_days: emergenciesLast7Days,
-        last_3_months: emergenciesLast3Months,
-        current_month: monthlyEmergencies,
+        trends: {
+          today: emergenciesTrendToday,
+          last_30_days: emergenciesTrendLast30Days,
+          last_7_days: emergenciesTrendLast7Days,
+          last_3_months: emergenciesTrendLast3Months,
+          current_month: emergenciesTrendCurrentMonth,
+        },
+        totals: {
+          today: emergenciesTrendToday.total_count,
+          last_30_days: emergenciesTrendLast30Days.reduce(
+            (sum, day) => sum + day.count,
+            0
+          ),
+          last_7_days: emergenciesTrendLast7Days.reduce(
+            (sum, day) => sum + day.count,
+            0
+          ),
+          last_3_months: emergenciesTrendLast3Months.reduce(
+            (sum, day) => sum + day.count,
+            0
+          ),
+          current_month: emergenciesTrendCurrentMonth.reduce(
+            (sum, day) => sum + day.count,
+            0
+          ),
+        },
       },
       performance: {
         average_response_time: responseTimeStats.averageTime,
@@ -350,6 +368,158 @@ async function getAgencyResponderIds(agencyId) {
     .find({ agency_id: agencyId })
     .select("_id");
   return responders.map((r) => r._id);
+}
+
+/**
+ * Get daily emergency trend data for charts
+ * @param {string} agencyId - The agency ID
+ * @param {number} days - Number of days to look back
+ * @returns {Array} Array of {date: string, count: number} objects
+ */
+async function getEmergenciesTrendData(agencyId, days) {
+  const responderIds = await getAgencyResponderIds(agencyId);
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  startDate.setHours(0, 0, 0, 0);
+
+  // Generate date range array
+  const dateRange = [];
+  for (let i = 0; i < days; i++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
+    dateRange.push({
+      date: date.toISOString().split("T")[0], // YYYY-MM-DD format
+      start: new Date(date),
+      end: new Date(date.getTime() + 24 * 60 * 60 * 1000 - 1), // End of day
+    });
+  }
+
+  // Get emergency counts for each day
+  const trendData = await Promise.all(
+    dateRange.map(async ({ date, start, end }) => {
+      const count = await emergencyRequestModel.countDocuments({
+        $or: [
+          {
+            "selected_responders.ambulances.responder_id": {
+              $in: responderIds,
+            },
+          },
+          {
+            "selected_responders.fire_trucks.responder_id": {
+              $in: responderIds,
+            },
+          },
+          {
+            "selected_responders.police_units.responder_id": {
+              $in: responderIds,
+            },
+          },
+        ],
+        createdAt: {
+          $gte: start,
+          $lte: end,
+        },
+      });
+
+      return {
+        date,
+        count,
+        day: start.toLocaleDateString("en-US", { weekday: "short" }), // Mon, Tue, etc.
+        month: start.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }), // Jan 15, Feb 3, etc.
+      };
+    })
+  );
+
+  return trendData;
+}
+
+/**
+ * Get today's emergency trend data with hourly breakdown
+ * @param {string} agencyId - The agency ID
+ * @returns {Object} Today's emergency data with hourly breakdown and total count
+ */
+async function getEmergenciesTodayTrend(agencyId) {
+  const responderIds = await getAgencyResponderIds(agencyId);
+  const today = new Date();
+  const startOfDay = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+  const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
+
+  // Create hourly time slots for today
+  const hourlyData = [];
+  for (let hour = 0; hour < 24; hour++) {
+    const hourStart = new Date(startOfDay);
+    hourStart.setHours(hour, 0, 0, 0);
+
+    const hourEnd = new Date(startOfDay);
+    hourEnd.setHours(hour, 59, 59, 999);
+
+    // Format time for display (e.g., "6:00 AM", "2:00 PM")
+    const timeLabel = hourStart
+      .toLocaleTimeString("en-US", {
+        hour: "numeric",
+        hour12: true,
+      })
+      .replace(":00", "");
+
+    const count = await emergencyRequestModel.countDocuments({
+      $or: [
+        {
+          "selected_responders.ambulances.responder_id": { $in: responderIds },
+        },
+        {
+          "selected_responders.fire_trucks.responder_id": { $in: responderIds },
+        },
+        {
+          "selected_responders.police_units.responder_id": {
+            $in: responderIds,
+          },
+        },
+      ],
+      createdAt: {
+        $gte: hourStart,
+        $lte: hourEnd,
+      },
+    });
+
+    hourlyData.push({
+      hour,
+      time: timeLabel,
+      count,
+      period: hour < 12 ? "AM" : "PM",
+    });
+  }
+
+  // Calculate total count for today
+  const totalCount = hourlyData.reduce((sum, hour) => sum + hour.count, 0);
+
+  return {
+    date: today.toISOString().split("T")[0], // YYYY-MM-DD format
+    day: today.toLocaleDateString("en-US", { weekday: "long" }), // Monday, Tuesday, etc.
+    total_count: totalCount,
+    hourly_data: hourlyData,
+    peak_hour: hourlyData.reduce((peak, current) =>
+      current.count > peak.count ? current : peak
+    ),
+    summary: {
+      morning_count: hourlyData
+        .slice(6, 12)
+        .reduce((sum, h) => sum + h.count, 0), // 6 AM - 12 PM
+      afternoon_count: hourlyData
+        .slice(12, 18)
+        .reduce((sum, h) => sum + h.count, 0), // 12 PM - 6 PM
+      evening_count: hourlyData
+        .slice(18, 24)
+        .reduce((sum, h) => sum + h.count, 0), // 6 PM - 12 AM
+      night_count: hourlyData.slice(0, 6).reduce((sum, h) => sum + h.count, 0), // 12 AM - 6 AM
+    },
+  };
 }
 
 /**
