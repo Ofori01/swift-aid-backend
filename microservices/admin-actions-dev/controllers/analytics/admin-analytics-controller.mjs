@@ -17,7 +17,7 @@ export async function getPerformanceAnalytics(req, res) {
 
     const daysBack = parseInt(period);
     const fromDate = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
-    const agencyId = agency._id.toString();
+    const agencyId = agency.agency_id; // Use agency_id instead of _id
 
     let analyticsData = {};
 
@@ -70,7 +70,7 @@ export async function getResponseTimeTrends(req, res) {
 
     const daysBack = parseInt(days);
     const fromDate = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
-    const responderIds = await getAgencyResponderIds(agency._id.toString());
+    const responderIds = await getAgencyResponderIds(agency.agency_id); // Use agency_id instead of _id
 
     const trends = await emergencyRequestModel.aggregate([
       {
@@ -157,7 +157,7 @@ export async function getResponderUtilization(req, res) {
 
     const daysBack = parseInt(period);
     const fromDate = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
-    const agencyId = agency._id.toString();
+    const agencyId = agency.agency_id; // Use agency_id instead of _id
 
     const utilization = await responderModel.aggregate([
       {

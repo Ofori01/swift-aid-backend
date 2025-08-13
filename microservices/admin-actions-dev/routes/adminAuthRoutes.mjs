@@ -14,6 +14,8 @@ const adminAuthRouter = express.Router();
 adminAuthRouter.post("/login", adminLogin);
 adminAuthRouter.post("/signup", adminSignup);
 
+
+
 // Protected routes (admin authentication required)
 adminAuthRouter.use(authorization("admin"));
 

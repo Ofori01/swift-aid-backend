@@ -7,6 +7,64 @@ import {
 import { generateToken } from "../../../../utils/auth/tokens.mjs";
 
 /**
+ * TEMPORARY: Reset admin password using only email
+ * WARNING: This bypasses normal security measures. Remove after password recovery.
+ */
+export async function temporaryPasswordReset(req, res) {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({
+        message: "Email and new password are required",
+      });
+    }
+
+    // Validate password strength
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters long",
+      });
+    }
+
+    // Find admin by email
+    const admin = await adminModel.findOne({ email: email.toLowerCase() });
+    if (!admin) {
+      return res.status(404).json({
+        message: "Admin not found with this email address",
+      });
+    }
+
+    // Hash new password
+    const hashedNewPassword = generatePasswordHash(newPassword);
+
+    // Update password
+    await adminModel.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { $set: { password: hashedNewPassword } }
+    );
+
+    // Log this security event
+    console.log(
+      `🚨 SECURITY: Temporary password reset for admin: ${email} at ${new Date()}`
+    );
+
+    res.status(200).json({
+      message:
+        "Password reset successfully. Please login with your new password.",
+      admin_email: email,
+      reset_at: new Date(),
+    });
+  } catch (error) {
+    console.error("❌ Error in temporary password reset:", error);
+    res.status(500).json({
+      message: "Error resetting password",
+      error: error.message,
+    });
+  }
+}
+
+/**
  * Admin login controller
  */
 export async function adminLogin(req, res) {
@@ -35,11 +93,11 @@ export async function adminLogin(req, res) {
     }
 
     // Get admin's agency information
-    const agency = await agencyModel.findOne({ admin_id: admin._id });
+    const agency = await agencyModel.findOne({ admin_id: admin.admin_id });
 
     // Generate token
     const token = generateToken({
-      admin_id: admin._id,
+      admin_id: admin.admin_id,
       email: admin.email,
       role: admin.role,
       name: admin.name,
@@ -49,7 +107,7 @@ export async function adminLogin(req, res) {
       message: "Admin login successful",
       token,
       admin: {
-        admin_id: admin._id,
+        admin_id: admin.admin_id,
         name: admin.name,
         email: admin.email,
         phone: admin.phone,
@@ -119,7 +177,7 @@ export async function adminSignup(req, res) {
 
     // Generate token
     const token = generateToken({
-      admin_id: savedAdmin._id,
+      admin_id: savedAdmin.admin_id,
       email: savedAdmin.email,
       role: savedAdmin.role,
       name: savedAdmin.name,
@@ -129,7 +187,7 @@ export async function adminSignup(req, res) {
       message: "Admin account created successfully",
       token,
       admin: {
-        admin_id: savedAdmin._id,
+        admin_id: savedAdmin.admin_id,
         name: savedAdmin.name,
         email: savedAdmin.email,
         phone: savedAdmin.phone,
@@ -153,7 +211,9 @@ export async function getAdminProfile(req, res) {
   try {
     const adminId = req.user.admin_id || req.user.user_id;
 
-    const admin = await adminModel.findById(adminId).select("-password");
+    const admin = await adminModel
+      .findOne({ admin_id: adminId })
+      .select("-password");
     if (!admin) {
       return res.status(404).json({
         message: "Admin not found",
@@ -196,7 +256,7 @@ export async function updateAdminProfile(req, res) {
     if (email || phone) {
       const conflicts = await adminModel.findOne({
         $and: [
-          { _id: { $ne: adminId } },
+          { admin_id: { $ne: adminId } },
           {
             $or: [
               ...(email ? [{ email: email.toLowerCase() }] : []),
@@ -214,8 +274,8 @@ export async function updateAdminProfile(req, res) {
     }
 
     const updatedAdmin = await adminModel
-      .findByIdAndUpdate(
-        adminId,
+      .findOneAndUpdate(
+        { admin_id: adminId },
         { $set: updateData },
         { new: true, runValidators: true }
       )
@@ -254,7 +314,7 @@ export async function changeAdminPassword(req, res) {
       });
     }
 
-    const admin = await adminModel.findById(adminId);
+    const admin = await adminModel.findOne({ admin_id: adminId });
     if (!admin) {
       return res.status(404).json({
         message: "Admin not found",
@@ -272,9 +332,10 @@ export async function changeAdminPassword(req, res) {
     const hashedNewPassword = generatePasswordHash(newPassword);
 
     // Update password
-    await adminModel.findByIdAndUpdate(adminId, {
-      $set: { password: hashedNewPassword },
-    });
+    await adminModel.findOneAndUpdate(
+      { admin_id: adminId },
+      { $set: { password: hashedNewPassword } }
+    );
 
     res.status(200).json({
       message: "Password changed successfully",

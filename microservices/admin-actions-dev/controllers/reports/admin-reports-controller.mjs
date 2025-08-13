@@ -29,7 +29,7 @@ export async function generateAgencyReport(req, res) {
     const reportData = await generateReportData(agency, start, end, reportType);
 
     if (format === "csv") {
-      generateCSVReport(res, reportData, agency);
+      await generateCSVReport(res, reportData, agency);
     } else {
       res.status(200).json({
         message: "Agency report generated successfully",
@@ -71,7 +71,7 @@ export async function getEfficiencyReport(req, res) {
 
     const daysBack = parseInt(period);
     const fromDate = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
-    const agencyId = agency._id.toString();
+    const agencyId = agency.agency_id; // Use agency_id instead of _id
 
     const efficiencyMetrics = await calculateEfficiencyMetrics(
       agencyId,
@@ -112,7 +112,7 @@ export async function getResponderPerformanceReport(req, res) {
 
     const daysBack = parseInt(period);
     const fromDate = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
-    const agencyId = agency._id.toString();
+    const agencyId = agency.agency_id; // Use agency_id instead of _id
 
     const performanceData = await getResponderPerformanceData(
       agencyId,
@@ -154,7 +154,7 @@ export async function getEmergencyTypesReport(req, res) {
 
     const daysBack = parseInt(period);
     const fromDate = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
-    const agencyId = agency._id.toString();
+    const agencyId = agency.agency_id; // Use agency_id instead of _id
 
     const typesAnalysis = await getEmergencyTypesAnalysis(agencyId, fromDate);
 
@@ -179,7 +179,7 @@ export async function getEmergencyTypesReport(req, res) {
 
 // Helper functions
 async function generateReportData(agency, startDate, endDate, reportType) {
-  const agencyId = agency._id.toString();
+  const agencyId = agency.agency_id; // Use agency_id instead of _id
   const responderIds = await getAgencyResponderIds(agencyId);
 
   const [emergenciesData, respondersData, performanceData, efficiencyData] =
@@ -476,33 +476,44 @@ async function getEmergencyTypesAnalysis(agencyId, fromDate) {
   ]);
 }
 
-function generateCSVReport(res, reportData, agency) {
-  const csvData = [];
+async function generateCSVReport(res, reportData, agency) {
+  // Create CSV content
+  let csvContent = "Agency Report\n\n";
+  csvContent += `Agency Name,${agency.name}\n`;
+  csvContent += `Agency Type,${agency.agency_type}\n`;
+  csvContent += `Branch,${agency.branch}\n`;
+  csvContent += `Generated At,${new Date().toISOString()}\n\n`;
 
-  // Header information
-  csvData.push(["Agency Report"]);
-  csvData.push(["Agency Name", agency.name]);
-  csvData.push(["Agency Type", agency.agency_type]);
-  csvData.push(["Branch", agency.branch]);
-  csvData.push(["Generated At", new Date().toISOString()]);
-  csvData.push([]);
+  // Add overview data
+  csvContent += "Overview\n";
+  csvContent += `Total Emergencies,${reportData.overview.total_emergencies}\n`;
+  csvContent += `Active Responders,${reportData.overview.active_responders}\n`;
+  csvContent += `Total Responders,${reportData.overview.total_responders}\n`;
+  csvContent += `Average Response Time,${reportData.overview.average_response_time}s\n`;
+  csvContent += `Success Rate,${reportData.overview.success_rate}%\n\n`;
 
-  // Overview data
-  csvData.push(["Overview"]);
-  csvData.push(["Metric", "Value"]);
-  csvData.push(["Total Emergencies", reportData.overview.total_emergencies]);
-  csvData.push(["Active Responders", reportData.overview.active_responders]);
-  csvData.push(["Total Responders", reportData.overview.total_responders]);
-  csvData.push([
-    "Average Response Time",
-    `${reportData.overview.average_response_time}s`,
-  ]);
-  csvData.push(["Success Rate", `${reportData.overview.success_rate}%`]);
+  // Add emergency types distribution if available
+  if (reportData.emergencies && reportData.emergencies.type_distribution) {
+    csvContent += "Emergency Types Distribution\n";
+    csvContent += "Type,Count\n";
+    Object.entries(reportData.emergencies.type_distribution).forEach(
+      ([type, count]) => {
+        csvContent += `${type},${count}\n`;
+      }
+    );
+    csvContent += "\n";
+  }
 
-  // Convert to CSV format
-  const csvContent = csvData
-    .map((row) => row.map((cell) => `"${cell || ""}"`).join(","))
-    .join("\n");
+  // Add responder status distribution if available
+  if (reportData.responders && reportData.responders.status_distribution) {
+    csvContent += "Responder Status Distribution\n";
+    csvContent += "Status,Count\n";
+    Object.entries(reportData.responders.status_distribution).forEach(
+      ([status, count]) => {
+        csvContent += `${status},${count}\n`;
+      }
+    );
+  }
 
   // Set response headers for CSV file
   res.setHeader("Content-Type", "text/csv");

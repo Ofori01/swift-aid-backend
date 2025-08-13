@@ -24,7 +24,7 @@ export async function getDashboardInfo(req, res) {
       return res.status(404).json({ message: "Admin agency not found" });
     }
 
-    const agencyId = agency._id.toString();
+    const agencyId = agency.agency_id; // Use agency_id field, not _id
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);

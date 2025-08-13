@@ -23,7 +23,7 @@ export async function getAgencyEmergencies(req, res) {
       return res.status(404).json({ message: "Admin agency not found" });
     }
 
-    const agencyId = agency._id.toString();
+    const agencyId = agency.agency_id; // Use agency_id instead of _id
     const responderIds = await getAgencyResponderIds(agencyId);
 
     // Build query filters
@@ -126,7 +126,7 @@ export async function getEmergencyDetails(req, res) {
     }
 
     // Check if this emergency involves the admin's agency
-    const agencyId = agency._id.toString();
+    const agencyId = agency.agency_id; // Use agency_id instead of _id
     const responderIds = await getAgencyResponderIds(agencyId);
     const isInvolved = await checkAgencyInvolvement(emergency, responderIds);
 
@@ -185,7 +185,7 @@ export async function updateEmergencyStatus(req, res) {
     }
 
     // Check if this emergency involves the admin's agency
-    const responderIds = await getAgencyResponderIds(agency._id.toString());
+    const responderIds = await getAgencyResponderIds(agency.agency_id); // Use agency_id instead of _id
     const isInvolved = await checkAgencyInvolvement(emergency, responderIds);
 
     if (!isInvolved) {
@@ -256,7 +256,7 @@ export async function assignResponders(req, res) {
     // Verify all responders belong to admin's agency
     const agencyResponders = await responderModel.find({
       _id: { $in: responder_ids },
-      agency_id: agency._id.toString(),
+      agency_id: agency.agency_id, // Use agency_id instead of _id
     });
 
     if (agencyResponders.length !== responder_ids.length) {
