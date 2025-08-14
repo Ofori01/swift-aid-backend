@@ -1,6 +1,7 @@
 import emergencyRequestModel from "../../../emergency-requests-management/models/emergency-request-schema.mjs";
 import responderModel from "../../../responder-management/models/responder-schema.mjs";
 import agencyModel from "../../models/agencies-schema.mjs";
+import userModel from "../../../user-management/models/userSchema.mjs";
 
 /**
  * Get all emergencies involving admin's agency
@@ -52,16 +53,31 @@ export async function getAgencyEmergencies(req, res) {
     const sortQuery = {};
     sortQuery[sort_by] = sort_order === "asc" ? 1 : -1;
 
-    const [emergencies, totalCount] = await Promise.all([
+    const [rawEmergencies, totalCount] = await Promise.all([
       emergencyRequestModel
         .find(matchQuery)
-        .populate("user_id", "name phone_number")
         .select("-__v")
         .sort(sortQuery)
         .skip(skip)
         .limit(parseInt(limit)),
       emergencyRequestModel.countDocuments(matchQuery),
     ]);
+
+    // Manually populate user data since user_id references user_id field, not _id
+    const emergencies = await Promise.all(
+      rawEmergencies.map(async (emergency) => {
+        const emergencyObj = emergency.toObject();
+
+        if (emergency.user_id) {
+          const user = await userModel
+            .findOne({ user_id: emergency.user_id })
+            .select("name phone_number email");
+          emergencyObj.user_id = user;
+        }
+
+        return emergencyObj;
+      })
+    );
 
     // Get agency responders involved in each emergency
     const emergenciesWithResponders = await Promise.all(
@@ -71,7 +87,7 @@ export async function getAgencyEmergencies(req, res) {
           agencyId
         );
         return {
-          ...emergency.toObject(),
+          ...emergency,
           agency_responders: involvedResponders,
         };
       })
