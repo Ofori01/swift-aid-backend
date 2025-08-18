@@ -414,8 +414,12 @@ export async function getOngoingEmergencies(req, res) {
         },
         summary: {
           total_ongoing: totalCount,
-          pending_count: emergenciesWithResponders.filter(e => e.status === "Pending").length,
-          accepted_count: emergenciesWithResponders.filter(e => e.status === "Accepted").length,
+          pending_count: emergenciesWithResponders.filter(
+            (e) => e.status === "Pending"
+          ).length,
+          accepted_count: emergenciesWithResponders.filter(
+            (e) => e.status === "Accepted"
+          ).length,
         },
         filters: {
           emergency_type,
