@@ -313,6 +313,125 @@ export async function assignResponders(req, res) {
   }
 }
 
+/**
+ * Get ongoing emergencies (Pending or Accepted status)
+ */
+export async function getOngoingEmergencies(req, res) {
+  try {
+    const adminId = req.user.admin_id || req.user.user_id;
+    const {
+      page = 1,
+      limit = 20,
+      emergency_type,
+      severity,
+      sort_by = "createdAt",
+      sort_order = "desc",
+    } = req.query;
+
+    const agency = await agencyModel.findOne({ admin_id: adminId });
+    if (!agency) {
+      return res.status(404).json({ message: "Admin agency not found" });
+    }
+
+    const agencyId = agency.agency_id;
+    const responderIds = await getAgencyResponderIds(agencyId);
+
+    // Build query filters for ongoing emergencies
+    const matchQuery = {
+      status: { $in: ["Pending", "Accepted"] }, // Only ongoing emergencies
+      $or: [
+        {
+          "selected_responders.ambulances.responder_id": { $in: responderIds },
+        },
+        {
+          "selected_responders.fire_trucks.responder_id": { $in: responderIds },
+        },
+        {
+          "selected_responders.police_units.responder_id": {
+            $in: responderIds,
+          },
+        },
+      ],
+    };
+
+    if (emergency_type) matchQuery.emergency_type = emergency_type;
+    if (severity) matchQuery.severity = severity;
+
+    // Execute query with pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const sortQuery = {};
+    sortQuery[sort_by] = sort_order === "asc" ? 1 : -1;
+
+    const [rawEmergencies, totalCount] = await Promise.all([
+      emergencyRequestModel
+        .find(matchQuery)
+        .select("-__v")
+        .sort(sortQuery)
+        .skip(skip)
+        .limit(parseInt(limit)),
+      emergencyRequestModel.countDocuments(matchQuery),
+    ]);
+
+    // Manually populate user data since user_id references user_id field, not _id
+    const emergencies = await Promise.all(
+      rawEmergencies.map(async (emergency) => {
+        const emergencyObj = emergency.toObject();
+
+        if (emergency.user_id) {
+          const user = await userModel
+            .findOne({ user_id: emergency.user_id })
+            .select("name phone_number email");
+          emergencyObj.user_id = user;
+        }
+
+        return emergencyObj;
+      })
+    );
+
+    // Get agency responders involved in each emergency
+    const emergenciesWithResponders = await Promise.all(
+      emergencies.map(async (emergency) => {
+        const involvedResponders = await getInvolvedResponders(
+          emergency,
+          agencyId
+        );
+        return {
+          ...emergency,
+          agency_responders: involvedResponders,
+        };
+      })
+    );
+
+    res.status(200).json({
+      message: "Ongoing emergencies retrieved successfully",
+      data: {
+        emergencies: emergenciesWithResponders,
+        pagination: {
+          current_page: parseInt(page),
+          total_pages: Math.ceil(totalCount / parseInt(limit)),
+          total_count: totalCount,
+          per_page: parseInt(limit),
+        },
+        summary: {
+          total_ongoing: totalCount,
+          pending_count: emergenciesWithResponders.filter(e => e.status === "Pending").length,
+          accepted_count: emergenciesWithResponders.filter(e => e.status === "Accepted").length,
+        },
+        filters: {
+          emergency_type,
+          severity,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error fetching ongoing emergencies:", error);
+    res.status(500).json({
+      message: "Error retrieving ongoing emergencies",
+      error: error.message,
+    });
+  }
+}
+
 // Helper functions
 async function getAgencyResponderIds(agencyId) {
   const responders = await responderModel

@@ -21,6 +21,7 @@ import {
   getEmergencyDetails,
   updateEmergencyStatus,
   assignResponders,
+  getOngoingEmergencies,
 } from "../controllers/emergency/admin-emergency-controller.mjs";
 import {
   generateAgencyReport,
@@ -54,6 +55,7 @@ adminRouter.get("/reports/emergency-types", getEmergencyTypesReport);
 
 // Emergency management routes
 adminRouter.get("/emergencies", getAgencyEmergencies);
+adminRouter.get("/emergencies/ongoing", getOngoingEmergencies);
 adminRouter.get("/emergencies/:emergencyId", getEmergencyDetails);
 adminRouter.put("/emergencies/:emergencyId/status", updateEmergencyStatus);
 adminRouter.put("/emergencies/:emergencyId/assign", assignResponders);
