@@ -473,7 +473,7 @@ async function getInvolvedResponders(emergency, agencyId) {
       _id: { $in: allInvolvedIds },
       agency_id: agencyId,
     })
-    .select("name badgeNumber phone status");
+    .select("name badgeNumber phone status current_location");
 
   return responders;
 }
