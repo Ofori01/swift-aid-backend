@@ -5,6 +5,7 @@ import {
   getAgency,
   deleteResponder,
   addResponder,
+  updateResponder,
 } from "../controllers/responders/responderControllers.mjs";
 import {
   addAdmin,
@@ -64,6 +65,7 @@ adminRouter.put("/emergencies/:emergencyId/assign", assignResponders);
 adminRouter.get("/responders", getAllResponders);
 adminRouter.get("/responders/:id", getResponderById);
 adminRouter.post("/responders", addResponder);
+adminRouter.put("/responders/:id", updateResponder);
 adminRouter.delete("/responders/:id", deleteResponder);
 
 // Agency management routes
