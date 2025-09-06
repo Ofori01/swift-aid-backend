@@ -31,6 +31,11 @@ import {
   getEmergencyTypesReport,
 } from "../controllers/reports/admin-reports-controller.mjs";
 import {
+  getCompletedEmergenciesWithReports,
+  getEmergencyWithReports,
+  getReportStatistics,
+} from "../controllers/reports/admin-report-viewer-controller.mjs";
+import {
   getSocketStats,
   getRoomInfo,
   sendSystemAnnouncement,
@@ -58,6 +63,14 @@ adminRouter.get(
   getResponderPerformanceReport
 );
 adminRouter.get("/reports/emergency-types", getEmergencyTypesReport);
+
+// Completed emergencies with responder reports
+adminRouter.get(
+  "/reports/completed-emergencies",
+  getCompletedEmergenciesWithReports
+);
+adminRouter.get("/reports/emergency/:emergencyId", getEmergencyWithReports);
+adminRouter.get("/reports/statistics", getReportStatistics);
 
 // Emergency management routes
 adminRouter.get("/emergencies", getAgencyEmergencies);

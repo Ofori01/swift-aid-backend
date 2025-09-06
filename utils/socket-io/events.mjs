@@ -1,5 +1,6 @@
 import { io } from "../../server/index.mjs";
 import responderModel from "../../microservices/responder-management/models/responder-schema.mjs";
+import emergencyRequestModel from "../../microservices/emergency-requests-management/models/emergency-request-schema.mjs";
 
 // ============================
 // CORE ROOM MANAGEMENT
@@ -161,6 +162,32 @@ export function updateLocationEvent(socket) {
 
         // If responder is in an emergency, broadcast location to emergency room
         if (emergencyId) {
+          // Check if this is the first location update for this emergency
+          const emergency = await emergencyRequestModel.findById(emergencyId);
+
+          if (emergency && emergency.status === "Assigned") {
+            // First location broadcast - update status to "In Progress"
+            await emergencyRequestModel.findByIdAndUpdate(emergencyId, {
+              status: "In Progress",
+              updatedAt: new Date(),
+            });
+
+            // Broadcast status change to all room members
+            socket.to(emergencyId).emit("emergency-status-changed", {
+              emergencyId,
+              newStatus: "In Progress",
+              responderId,
+              timestamp: new Date().toISOString(),
+              message:
+                "Emergency status updated to 'In Progress' - Responder is en route",
+            });
+
+            console.log(
+              `🚨 Emergency ${emergencyId} status changed to 'In Progress' on first location broadcast by responder ${responderId}`
+            );
+          }
+
+          // Broadcast location update to emergency room
           socket.to(emergencyId).emit("responder-location-update", {
             responderId,
             location,
@@ -168,7 +195,7 @@ export function updateLocationEvent(socket) {
           });
         }
 
-        console.log(`Updated location for responder ${responderId}`);
+        console.log(`📍 Updated location for responder ${responderId}`);
       } catch (error) {
         console.error("Error updating responder location:", error);
         socket.emit("error", { message: "Failed to update location" });
