@@ -9,7 +9,7 @@ import {
   getMyReports,
   getReportById,
   updateReport,
-} from "../controllers/reports/report-controller.mjs";
+} from "../controllers/report-controller.mjs";
 import { authorization } from "../../../utils/auth/authorization.mjs";
 
 const responders = Router();
