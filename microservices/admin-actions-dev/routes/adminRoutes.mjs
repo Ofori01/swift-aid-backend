@@ -30,6 +30,11 @@ import {
   getResponderPerformanceReport,
   getEmergencyTypesReport,
 } from "../controllers/reports/admin-reports-controller.mjs";
+import {
+  getSocketStats,
+  getRoomInfo,
+  sendSystemAnnouncement,
+} from "../controllers/socket/socket-controller.mjs";
 import { authorization } from "../../../utils/auth/authorization.mjs";
 
 const adminRouter = express.Router();
@@ -74,5 +79,10 @@ adminRouter.post("/agency", createAgency);
 
 // Admin management routes
 adminRouter.post("/add", addAdmin);
+
+// Socket monitoring routes (admin only)
+adminRouter.get("/socket/stats", getSocketStats);
+adminRouter.get("/socket/room/:roomId", getRoomInfo);
+adminRouter.post("/socket/announcement", sendSystemAnnouncement);
 
 export default adminRouter;

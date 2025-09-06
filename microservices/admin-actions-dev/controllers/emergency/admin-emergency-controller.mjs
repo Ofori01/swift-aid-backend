@@ -2,6 +2,7 @@ import emergencyRequestModel from "../../../emergency-requests-management/models
 import responderModel from "../../../responder-management/models/responder-schema.mjs";
 import agencyModel from "../../models/agencies-schema.mjs";
 import userModel from "../../../user-management/models/userSchema.mjs";
+import SocketService from "../../../../utils/socket-io/socketService.mjs";
 
 /**
  * Get all emergencies involving admin's agency
@@ -224,6 +225,22 @@ export async function updateEmergencyStatus(req, res) {
       },
       { new: true }
     );
+
+    // 🔥 REAL-TIME NOTIFICATION
+    try {
+      SocketService.updateEmergencyStatus(
+        emergencyId,
+        status,
+        adminId,
+        admin_notes
+      );
+      console.log(
+        `🔌 Socket notification sent for emergency ${emergencyId} status: ${status}`
+      );
+    } catch (socketError) {
+      console.error("❌ Error sending socket notification:", socketError);
+      // Don't fail the request if socket fails
+    }
 
     res.status(200).json({
       message: "Emergency status updated successfully",

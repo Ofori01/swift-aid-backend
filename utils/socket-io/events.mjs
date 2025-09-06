@@ -1,28 +1,343 @@
-import { io } from "../../server/index.mjs"
+import { io } from "../../server/index.mjs";
+import responderModel from "../../microservices/responder-management/models/responder-schema.mjs";
 
+// ============================
+// CORE ROOM MANAGEMENT
+// ============================
 
-//join room whether personal or emergency. Room is identified by either userId or emergencyID
-export function joinRoomEvent(socket){
-    return socket.on("join-room", ({roomId})=> {
-        socket.join(roomId)
-    })
+/**
+ * Join a room (user joins emergency room, responder joins their personal room, admin joins emergency room)
+ */
+export function joinRoomEvent(socket) {
+  return socket.on("join-room", ({ roomId, userType, userId }) => {
+    socket.join(roomId);
+    socket.userId = userId;
+    socket.userType = userType; // 'user', 'responder', 'admin'
+    socket.currentRoom = roomId;
+
+    console.log(`${userType} ${userId} joined room: ${roomId}`);
+
+    // Notify room about new member (except for responder personal rooms)
+    if (userType === "admin") {
+      socket.to(roomId).emit("admin-joined", {
+        adminId: userId,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
 }
 
-// when responder shares eta
-export function updateEtaEvent(socket){
-    return socket.on('update-eta', ({emergencyId,responderId, eta})=> {
-        io.to(emergencyId).emit('eta-update', {responderId, eta})
-    })
+/**
+ * Leave a room gracefully
+ */
+export function leaveRoomEvent(socket) {
+  return socket.on("leave-room", ({ roomId, userType, userId }) => {
+    socket.leave(roomId);
+    console.log(`${userType} ${userId} left room: ${roomId}`);
+
+    if (userType === "admin") {
+      socket.to(roomId).emit("admin-left", {
+        adminId: userId,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
 }
 
-//when responder accepts emergency requests
-export function notifyOnAcceptance(socket){
-    return socket.on("emergency-accepted", ({emergencyId, responderId})=>{
-        io.to(emergencyId).emit('emergency-accepted',{responderId})
-    })
+// ============================
+// EMERGENCY MANAGEMENT
+// ============================
+
+/**
+ * Server-side function to add responders to emergency room when emergency is created
+ */
+export function addRespondersToEmergencyRoom(
+  emergencyId,
+  responderIds,
+  emergencyDetails
+) {
+  responderIds.forEach((responderId) => {
+    // Notify each responder about the emergency assignment
+    io.to(responderId.toString()).emit("emergency-assigned", {
+      emergencyId,
+      emergencyDetails: {
+        location: emergencyDetails.emergency_location,
+        type: emergencyDetails.emergency_type,
+        severity: emergencyDetails.severity,
+        description: emergencyDetails.description,
+        timestamp: emergencyDetails.createdAt,
+      },
+      message: "You have been assigned to a new emergency",
+    });
+
+    // Add responder to emergency room
+    const responderSockets = io.sockets.adapter.rooms.get(
+      responderId.toString()
+    );
+    if (responderSockets) {
+      responderSockets.forEach((socketId) => {
+        const socket = io.sockets.sockets.get(socketId);
+        if (socket) {
+          socket.join(emergencyId);
+          console.log(
+            `Responder ${responderId} added to emergency room: ${emergencyId}`
+          );
+        }
+      });
+    }
+  });
 }
 
-//responder emergency assignment. Server emit event
-export function assignEmergencyEvent(responderId, details){
-    return io.to(responderId).emit('emergency-assigned', details)
+/**
+ * When responder accepts emergency assignment
+ */
+export function acceptEmergencyEvent(socket) {
+  return socket.on(
+    "accept-emergency",
+    async ({ emergencyId, responderId, estimatedArrival }) => {
+      try {
+        // Notify user and admin in emergency room
+        socket.to(emergencyId).emit("responder-accepted", {
+          responderId,
+          estimatedArrival,
+          timestamp: new Date().toISOString(),
+          message: "A responder has accepted your emergency request",
+        });
+
+        console.log(
+          `Responder ${responderId} accepted emergency ${emergencyId}`
+        );
+      } catch (error) {
+        console.error("Error in accept emergency:", error);
+        socket.emit("error", { message: "Failed to accept emergency" });
+      }
+    }
+  );
+}
+
+/**
+ * When responder declines emergency assignment
+ */
+export function declineEmergencyEvent(socket) {
+  return socket.on(
+    "decline-emergency",
+    ({ emergencyId, responderId, reason }) => {
+      // Remove responder from emergency room
+      socket.leave(emergencyId);
+
+      // Notify admin about declined assignment
+      socket.to(emergencyId).emit("responder-declined", {
+        responderId,
+        reason,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log(
+        `Responder ${responderId} declined emergency ${emergencyId}: ${reason}`
+      );
+    }
+  );
+}
+
+// ============================
+// REAL-TIME LOCATION & ETA UPDATES
+// ============================
+
+/**
+ * Handle responder location updates
+ */
+export function updateLocationEvent(socket) {
+  return socket.on(
+    "update-location",
+    async ({ responderId, location, emergencyId }) => {
+      try {
+        // Update responder location in database
+        await responderModel.findByIdAndUpdate(responderId, {
+          current_location: {
+            type: "Point",
+            coordinates: [location.longitude, location.latitude],
+          },
+        });
+
+        // If responder is in an emergency, broadcast location to emergency room
+        if (emergencyId) {
+          socket.to(emergencyId).emit("responder-location-update", {
+            responderId,
+            location,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        console.log(`Updated location for responder ${responderId}`);
+      } catch (error) {
+        console.error("Error updating responder location:", error);
+        socket.emit("error", { message: "Failed to update location" });
+      }
+    }
+  );
+}
+
+/**
+ * Handle ETA updates from responders
+ */
+export function updateEtaEvent(socket) {
+  return socket.on(
+    "update-eta",
+    ({ emergencyId, responderId, eta, distance }) => {
+      // Broadcast ETA update to emergency room (user and admin)
+      socket.to(emergencyId).emit("eta-update", {
+        responderId,
+        eta,
+        distance,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log(
+        `ETA update for responder ${responderId} in emergency ${emergencyId}: ${eta} minutes`
+      );
+    }
+  );
+}
+
+/**
+ * When responder arrives at emergency location
+ */
+export function responderArrivedEvent(socket) {
+  return socket.on("responder-arrived", ({ emergencyId, responderId }) => {
+    socket.to(emergencyId).emit("responder-arrived", {
+      responderId,
+      timestamp: new Date().toISOString(),
+      message: "Responder has arrived at the emergency location",
+    });
+
+    console.log(`Responder ${responderId} arrived at emergency ${emergencyId}`);
+  });
+}
+
+// ============================
+// STATUS UPDATES
+// ============================
+
+/**
+ * Emergency status updates (from admin)
+ */
+export function updateEmergencyStatusEvent(socket) {
+  return socket.on(
+    "update-emergency-status",
+    ({ emergencyId, status, adminId, notes }) => {
+      // Broadcast status update to all room members
+      io.to(emergencyId).emit("emergency-status-update", {
+        emergencyId,
+        status,
+        adminId,
+        notes,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log(
+        `Emergency ${emergencyId} status updated to ${status} by admin ${adminId}`
+      );
+    }
+  );
+}
+
+/**
+ * Responder status updates (available/unavailable)
+ */
+export function updateResponderStatusEvent(socket) {
+  return socket.on(
+    "update-responder-status",
+    async ({ responderId, status }) => {
+      try {
+        // Update responder status in database
+        await responderModel.findByIdAndUpdate(responderId, { status });
+
+        // Notify any listening admin dashboards
+        socket.broadcast.emit("responder-status-update", {
+          responderId,
+          status,
+          timestamp: new Date().toISOString(),
+        });
+
+        console.log(`Responder ${responderId} status updated to ${status}`);
+      } catch (error) {
+        console.error("Error updating responder status:", error);
+        socket.emit("error", { message: "Failed to update status" });
+      }
+    }
+  );
+}
+
+// ============================
+// MESSAGING & COMMUNICATION
+// ============================
+
+/**
+ * Emergency room chat/messaging
+ */
+export function sendEmergencyMessageEvent(socket) {
+  return socket.on(
+    "send-message",
+    ({ emergencyId, message, senderType, senderId }) => {
+      socket.to(emergencyId).emit("new-message", {
+        emergencyId,
+        message,
+        senderType,
+        senderId,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  );
+}
+
+// ============================
+// CONNECTION MANAGEMENT
+// ============================
+
+/**
+ * Handle client disconnection
+ */
+export function handleDisconnection(socket) {
+  return socket.on("disconnect", () => {
+    console.log(
+      `${socket.userType} ${socket.userId} disconnected from room: ${socket.currentRoom}`
+    );
+
+    // Clean up any emergency rooms if responder disconnects
+    if (socket.userType === "responder" && socket.currentRoom) {
+      socket.to(socket.currentRoom).emit("responder-disconnected", {
+        responderId: socket.userId,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+}
+
+// ============================
+// UTILITY FUNCTIONS
+// ============================
+
+/**
+ * Server-side function to notify user when emergency is created
+ */
+export function notifyEmergencyCreated(userId, emergencyDetails) {
+  io.to(userId.toString()).emit("emergency-created", {
+    emergencyId: emergencyDetails._id,
+    status: "Pending",
+    message:
+      "Your emergency request has been received and responders are being dispatched",
+    timestamp: new Date().toISOString(),
+  });
+}
+
+/**
+ * Server-side function to broadcast emergency completion
+ */
+export function notifyEmergencyCompleted(emergencyId, completionDetails) {
+  io.to(emergencyId).emit("emergency-completed", {
+    emergencyId,
+    completionDetails,
+    timestamp: new Date().toISOString(),
+    message: "Emergency has been marked as completed",
+  });
 }

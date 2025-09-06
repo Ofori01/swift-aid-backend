@@ -13,8 +13,16 @@ import responders from "../microservices/responder-management/routes/responders.
 import emergencyRequestRouter from "../microservices/emergency-requests-management/routes/emergency-request.mjs";
 import {
   joinRoomEvent,
-  notifyOnAcceptance,
+  leaveRoomEvent,
+  acceptEmergencyEvent,
+  declineEmergencyEvent,
+  updateLocationEvent,
   updateEtaEvent,
+  responderArrivedEvent,
+  updateEmergencyStatusEvent,
+  updateResponderStatusEvent,
+  sendEmergencyMessageEvent,
+  handleDisconnection,
 } from "../utils/socket-io/events.mjs";
 
 const app = express();
@@ -42,12 +50,30 @@ const io = new Server(httpServer, {
 });
 app.set("io", io);
 io.on("connection", (socket) => {
-  // ...
-  console.log("Socket Connected");
-  //.. socket events
+  console.log("Socket Connected:", socket.id);
+
+  // Core room management
   joinRoomEvent(socket);
+  leaveRoomEvent(socket);
+
+  // Emergency management
+  acceptEmergencyEvent(socket);
+  declineEmergencyEvent(socket);
+
+  // Real-time updates
+  updateLocationEvent(socket);
   updateEtaEvent(socket);
-  notifyOnAcceptance(socket);
+  responderArrivedEvent(socket);
+
+  // Status updates
+  updateEmergencyStatusEvent(socket);
+  updateResponderStatusEvent(socket);
+
+  // Communication
+  sendEmergencyMessageEvent(socket);
+
+  // Connection management
+  handleDisconnection(socket);
 });
 
 const PORT =

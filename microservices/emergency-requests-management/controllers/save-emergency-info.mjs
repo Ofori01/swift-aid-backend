@@ -1,4 +1,5 @@
 import emergencyRequestModel from "../models/emergency-request-schema.mjs";
+import SocketService from "../../../utils/socket-io/socketService.mjs";
 
 export async function saveEmergencyInfo(req, res, next) {
   try {
@@ -138,6 +139,24 @@ export async function saveEmergencyInfo(req, res, next) {
       console.log(
         `   ⏰ AI Est. Response: ${aiRecommendations.estimated_response_time} minutes`
       );
+    }
+
+    // 🔥 INITIALIZE REAL-TIME COMMUNICATION
+    try {
+      const socketData = await SocketService.initializeEmergencyRoom(
+        updatedRequest,
+        selectedResponders
+      );
+
+      console.log(`🔌 Socket rooms initialized:`);
+      console.log(`   📍 Emergency room: ${socketData.emergencyRoomId}`);
+      console.log(
+        `   👥 Responders notified: ${socketData.responderIds.length}`
+      );
+      console.log(`   📱 User room: ${socketData.userRoomId}`);
+    } catch (socketError) {
+      console.error("❌ Error initializing socket rooms:", socketError);
+      // Don't fail the request if socket setup fails
     }
 
     // Send final response to client
