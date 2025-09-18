@@ -29,7 +29,7 @@ export async function saveEmergencyInfo(req, res, next) {
       if (responders && responders.length > 0) {
         responders.forEach((responder) => {
           const responderData = {
-            responder_id: responder._id || responder.responder_id,
+            responder_id: responder.responder_id || responder._id,
             travelTime: responder.travelTime,
             routeType: responder.routeType || "estimated",
           };

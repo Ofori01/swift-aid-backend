@@ -146,6 +146,18 @@ export async function authorizeRoomAccess(socket, roomId, userType, userId) {
             ...(emergency.selected_responders.police_units || []),
           ];
 
+          console.log(
+            `🔍 Authorization check for responder ${userId} in emergency ${roomId}`
+          );
+          console.log(
+            `📋 All assigned responders:`,
+            allAssignedResponders.map((r) => ({
+              stored_responder_id: r.responder_id.toString(),
+              matches_socket_userId:
+                r.responder_id.toString() === userId.toString(),
+            }))
+          );
+
           // Check if the responder_id matches any assigned responder
           const isAssigned = allAssignedResponders.some(
             (responder) =>
@@ -153,7 +165,14 @@ export async function authorizeRoomAccess(socket, roomId, userType, userId) {
           );
 
           if (isAssigned) {
+            console.log(
+              `✅ Responder ${userId} authorized for emergency ${roomId}`
+            );
             return true;
+          } else {
+            console.log(
+              `❌ Responder ${userId} NOT found in assigned responders for emergency ${roomId}`
+            );
           }
         }
         break;
