@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import responderModel from "../../microservices/responder-management/models/responder-schema.mjs";
 import adminModel from "../../microservices/admin-actions-dev/models/adminSchema.mjs";
 import userModel from "../../microservices/user-management/models/userSchema.mjs";
+import emergencyRequestModel from "../../microservices/emergency-requests-management/models/emergency-request-schema.mjs";
 
 /**
  * Socket authentication middleware
@@ -44,12 +45,14 @@ export async function validateUserExists(socket, next) {
 
     switch (socket.userType) {
       case "responder":
-        user = await responderModel.findById(socket.userId);
+        // For responders, the JWT contains responder_id field, not _id
+        user = await responderModel.findOne({ responder_id: socket.userId });
         break;
       case "admin":
         user = await adminModel.findOne({ admin_id: socket.userId });
         break;
       case "user":
+        // For users, the JWT contains user_id which maps to _id
         user = await userModel.findById(socket.userId);
         break;
     }
