@@ -138,8 +138,23 @@ export async function authorizeRoomAccess(socket, roomId, userType, userId) {
 
         // Check if responder is assigned to this emergency
         const emergency = await emergencyRequestModel.findById(roomId);
-        if (emergency && emergency.responders_assigned?.includes(userId)) {
-          return true;
+        if (emergency && emergency.selected_responders) {
+          // Check across all responder categories
+          const allAssignedResponders = [
+            ...(emergency.selected_responders.ambulances || []),
+            ...(emergency.selected_responders.fire_trucks || []),
+            ...(emergency.selected_responders.police_units || []),
+          ];
+
+          // Check if the responder_id matches any assigned responder
+          const isAssigned = allAssignedResponders.some(
+            (responder) =>
+              responder.responder_id.toString() === userId.toString()
+          );
+
+          if (isAssigned) {
+            return true;
+          }
         }
         break;
 

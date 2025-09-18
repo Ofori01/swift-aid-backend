@@ -45,6 +45,18 @@ export function joinRoomEvent(socket) {
       trackRoomJoin(roomId, userType);
       logConnectionEvent("room_join", socket, roomId);
 
+      console.log(
+        `🏠 Room joined successfully: ${userType} -> ${roomId} | Socket: ${socket.id}`
+      );
+
+      // For debugging - show all current rooms
+      if (userType === "responder") {
+        console.log(
+          `📊 Current rooms after responder join:`,
+          Array.from(io.sockets.adapter.rooms.keys())
+        );
+      }
+
       // Store connection info for reconnection
       socket.connectionInfo = {
         roomId,
@@ -112,9 +124,28 @@ export function addRespondersToEmergencyRoom(
   responderIds,
   emergencyDetails
 ) {
+  console.log(
+    `🔔 Attempting to notify ${responderIds.length} responders for emergency ${emergencyId}`
+  );
+  console.log(`📋 Responder IDs to notify:`, responderIds);
+
   responderIds.forEach((responderId) => {
+    const responderRoomId = responderId.toString();
+    console.log(
+      `🔍 Looking for responder ${responderId} in room: ${responderRoomId}`
+    );
+
+    // Check if responder room exists and has connected sockets
+    const responderRoom = io.sockets.adapter.rooms.get(responderRoomId);
+    console.log(
+      `📍 Room ${responderRoomId} exists:`,
+      !!responderRoom,
+      `| Members:`,
+      responderRoom ? responderRoom.size : 0
+    );
+
     // Notify each responder about the emergency assignment
-    io.to(responderId.toString()).emit("emergency-assigned", {
+    io.to(responderRoomId).emit("emergency-assigned", {
       emergencyId,
       emergencyDetails: {
         location: emergencyDetails.emergency_location,
@@ -126,20 +157,26 @@ export function addRespondersToEmergencyRoom(
       message: "You have been assigned to a new emergency",
     });
 
-    // Add responder to emergency room
-    const responderSockets = io.sockets.adapter.rooms.get(
-      responderId.toString()
+    console.log(
+      `📤 Emergency assignment sent to responder room: ${responderRoomId}`
     );
+
+    // Add responder to emergency room if they are connected
+    const responderSockets = io.sockets.adapter.rooms.get(responderRoomId);
     if (responderSockets) {
       responderSockets.forEach((socketId) => {
         const socket = io.sockets.sockets.get(socketId);
         if (socket) {
           socket.join(emergencyId);
           console.log(
-            `Responder ${responderId} added to emergency room: ${emergencyId}`
+            `✅ Responder ${responderId} added to emergency room: ${emergencyId}`
           );
         }
       });
+    } else {
+      console.log(
+        `⚠️  Responder ${responderId} not connected or not in personal room`
+      );
     }
   });
 }
@@ -207,13 +244,16 @@ export function updateLocationEvent(socket) {
     "update-location",
     async ({ responderId, location, emergencyId }) => {
       try {
-        // Update responder location in database
-        await responderModel.findByIdAndUpdate(responderId, {
-          current_location: {
-            type: "Point",
-            coordinates: [location.longitude, location.latitude],
-          },
-        });
+        // Update responder location in database using responder_id field
+        await responderModel.findOneAndUpdate(
+          { responder_id: responderId },
+          {
+            current_location: {
+              type: "Point",
+              coordinates: [location.longitude, location.latitude],
+            },
+          }
+        );
 
         // If responder is in an emergency, broadcast location to emergency room
         if (emergencyId) {
@@ -331,8 +371,11 @@ export function updateResponderStatusEvent(socket) {
     "update-responder-status",
     async ({ responderId, status }) => {
       try {
-        // Update responder status in database
-        await responderModel.findByIdAndUpdate(responderId, { status });
+        // Update responder status in database using responder_id field
+        await responderModel.findOneAndUpdate(
+          { responder_id: responderId },
+          { status }
+        );
 
         // Notify any listening admin dashboards
         socket.broadcast.emit("responder-status-update", {
@@ -452,7 +495,7 @@ export function handleDisconnection(socket) {
     if (
       socket.userType === "responder" &&
       socket.currentRoom &&
-      socket.currentRoom !== socket.userId
+      socket.currentRoom !== socket.userId.toString()
     ) {
       socket.to(socket.currentRoom).emit("responder-disconnected", {
         responderId: socket.userId,
