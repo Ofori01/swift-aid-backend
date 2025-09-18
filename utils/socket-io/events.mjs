@@ -119,7 +119,7 @@ export function leaveRoomEvent(socket) {
 /**
  * Server-side function to add responders to emergency room when emergency is created
  */
-export function addRespondersToEmergencyRoom(
+export async function addRespondersToEmergencyRoom(
   emergencyId,
   responderIds,
   emergencyDetails
@@ -127,12 +127,34 @@ export function addRespondersToEmergencyRoom(
   console.log(
     `🔔 Attempting to notify ${responderIds.length} responders for emergency ${emergencyId}`
   );
-  console.log(`📋 Responder IDs to notify:`, responderIds);
+  console.log(`📋 Responder IDs received (MongoDB _id):`, responderIds);
 
-  responderIds.forEach((responderId) => {
-    const responderRoomId = responderId.toString();
+  // Convert MongoDB _id values to responder_id values for room lookup
+  const responderIdMappings = [];
+
+  for (const mongoId of responderIds) {
+    try {
+      const responder = await responderModel.findById(mongoId);
+      if (responder && responder.responder_id) {
+        responderIdMappings.push({
+          mongoId: mongoId.toString(),
+          responderId: responder.responder_id.toString(),
+          name: responder.name,
+        });
+      } else {
+        console.log(`⚠️  Responder not found for MongoDB ID: ${mongoId}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error looking up responder ${mongoId}:`, error);
+    }
+  }
+
+  console.log(`🔄 Converted to responder_id mappings:`, responderIdMappings);
+
+  responderIdMappings.forEach(({ mongoId, responderId, name }) => {
+    const responderRoomId = responderId;
     console.log(
-      `🔍 Looking for responder ${responderId} in room: ${responderRoomId}`
+      `🔍 Looking for responder ${name} (${responderId}) in room: ${responderRoomId}`
     );
 
     // Check if responder room exists and has connected sockets
@@ -158,7 +180,7 @@ export function addRespondersToEmergencyRoom(
     });
 
     console.log(
-      `📤 Emergency assignment sent to responder room: ${responderRoomId}`
+      `📤 Emergency assignment sent to responder ${name} in room: ${responderRoomId}`
     );
 
     // Add responder to emergency room if they are connected
@@ -169,13 +191,13 @@ export function addRespondersToEmergencyRoom(
         if (socket) {
           socket.join(emergencyId);
           console.log(
-            `✅ Responder ${responderId} added to emergency room: ${emergencyId}`
+            `✅ Responder ${name} (${responderId}) added to emergency room: ${emergencyId}`
           );
         }
       });
     } else {
       console.log(
-        `⚠️  Responder ${responderId} not connected or not in personal room`
+        `⚠️  Responder ${name} (${responderId}) not connected or not in personal room`
       );
     }
   });
