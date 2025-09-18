@@ -9,13 +9,11 @@ const responderReportSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true,
     ref: "emergencyRequest",
-    index: true,
   },
   responder_id: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
     ref: "responder",
-    index: true,
   },
   // Report Details
   arrival_time: {
@@ -106,12 +104,11 @@ const responderReportSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-responderReportSchema.index({ emergency_id: 1, responder_id: 1 });
 responderReportSchema.index({ submitted_at: -1 });
 responderReportSchema.index({ outcome: 1 });
 responderReportSchema.index({ severity_assessment: 1 });
 
-// Ensure one report per responder per emergency
+// Ensure one report per responder per emergency (compound unique index)
 responderReportSchema.index(
   { emergency_id: 1, responder_id: 1 },
   { unique: true }

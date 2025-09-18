@@ -1,6 +1,12 @@
 import { io } from "../../server/index.mjs";
 import responderModel from "../../microservices/responder-management/models/responder-schema.mjs";
 import emergencyRequestModel from "../../microservices/emergency-requests-management/models/emergency-request-schema.mjs";
+import { authorizeRoomAccess } from "./socketAuth.mjs";
+import {
+  trackRoomJoin,
+  trackRoomLeave,
+  logConnectionEvent,
+} from "./connectionMonitor.mjs";
 
 // ============================
 // CORE ROOM MANAGEMENT
@@ -10,19 +16,68 @@ import emergencyRequestModel from "../../microservices/emergency-requests-manage
  * Join a room (user joins emergency room, responder joins their personal room, admin joins emergency room)
  */
 export function joinRoomEvent(socket) {
-  return socket.on("join-room", ({ roomId, userType, userId }) => {
-    socket.join(roomId);
-    socket.userId = userId;
-    socket.userType = userType; // 'user', 'responder', 'admin'
-    socket.currentRoom = roomId;
+  return socket.on("join-room", async ({ roomId, userType, userId }) => {
+    try {
+      // Validate room access authorization
+      const isAuthorized = await authorizeRoomAccess(
+        socket,
+        roomId,
+        userType,
+        userId
+      );
+      if (!isAuthorized) {
+        console.log(
+          `🚫 Unauthorized room access attempt: ${userType} ${userId} -> room ${roomId}`
+        );
+        socket.emit("error", {
+          message: "Unauthorized: Cannot join this room",
+          roomId,
+          userType,
+        });
+        return;
+      }
 
-    console.log(`${userType} ${userId} joined room: ${roomId}`);
+      // Join the room
+      socket.join(roomId);
+      socket.currentRoom = roomId;
 
-    // Notify room about new member (except for responder personal rooms)
-    if (userType === "admin") {
-      socket.to(roomId).emit("admin-joined", {
-        adminId: userId,
+      // Track room join
+      trackRoomJoin(roomId, userType);
+      logConnectionEvent("room_join", socket, roomId);
+
+      // Store connection info for reconnection
+      socket.connectionInfo = {
+        roomId,
+        userType,
+        userId,
+        joinedAt: new Date().toISOString(),
+      };
+
+      // Notify room about new member (except for responder personal rooms)
+      if (userType === "admin") {
+        socket.to(roomId).emit("admin-joined", {
+          adminId: userId,
+          adminName: socket.userData?.name || "Admin",
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      // Send confirmation to the joining client
+      socket.emit("room-joined", {
+        roomId,
+        userType,
         timestamp: new Date().toISOString(),
+        message: `Successfully joined room ${roomId}`,
+      });
+    } catch (error) {
+      console.error(
+        `❌ Error joining room ${roomId} for ${userType} ${userId}:`,
+        error
+      );
+      socket.emit("error", {
+        message: "Failed to join room",
+        roomId,
+        error: error.message,
       });
     }
   });
@@ -322,21 +377,93 @@ export function sendEmergencyMessageEvent(socket) {
 // ============================
 
 /**
- * Handle client disconnection
+ * Handle auto-rejoin for responders after reconnection
+ */
+export function handleRejoinEvent(socket) {
+  return socket.on("rejoin-rooms", async ({ lastRooms }) => {
+    try {
+      console.log(
+        `🔄 ${socket.userType} ${socket.userId} requesting to rejoin rooms:`,
+        lastRooms
+      );
+
+      if (!Array.isArray(lastRooms)) {
+        socket.emit("error", { message: "Invalid rooms data for rejoin" });
+        return;
+      }
+
+      const rejoinedRooms = [];
+
+      for (const roomId of lastRooms) {
+        try {
+          const isAuthorized = await authorizeRoomAccess(
+            socket,
+            roomId,
+            socket.userType,
+            socket.userId
+          );
+
+          if (isAuthorized) {
+            socket.join(roomId);
+            rejoinedRooms.push(roomId);
+            console.log(`✅ Rejoined room: ${roomId}`);
+          } else {
+            console.log(`🚫 Not authorized to rejoin room: ${roomId}`);
+          }
+        } catch (error) {
+          console.error(`❌ Error rejoining room ${roomId}:`, error);
+        }
+      }
+
+      // Send confirmation with successfully rejoined rooms
+      socket.emit("rooms-rejoined", {
+        rejoinedRooms,
+        timestamp: new Date().toISOString(),
+        message: `Successfully rejoined ${rejoinedRooms.length} room(s)`,
+      });
+    } catch (error) {
+      console.error(
+        `❌ Error handling rejoin for ${socket.userType} ${socket.userId}:`,
+        error
+      );
+      socket.emit("error", { message: "Failed to rejoin rooms" });
+    }
+  });
+}
+
+/**
+ * Handle client disconnection with better logging
  */
 export function handleDisconnection(socket) {
-  return socket.on("disconnect", () => {
+  return socket.on("disconnect", (reason) => {
+    const disconnectType =
+      reason === "client namespace disconnect" ||
+      reason === "server namespace disconnect"
+        ? "🔄 Planned"
+        : "⚠️ Unplanned";
+
     console.log(
-      `${socket.userType} ${socket.userId} disconnected from room: ${socket.currentRoom}`
+      `${disconnectType} disconnection: ${socket.userType} ${
+        socket.userData?.name || "Unknown"
+      } (${socket.userId}) | Reason: ${reason} | Room: ${socket.currentRoom}`
     );
 
-    // Clean up any emergency rooms if responder disconnects
-    if (socket.userType === "responder" && socket.currentRoom) {
+    // Only notify for emergency rooms, not personal rooms
+    if (
+      socket.userType === "responder" &&
+      socket.currentRoom &&
+      socket.currentRoom !== socket.userId
+    ) {
       socket.to(socket.currentRoom).emit("responder-disconnected", {
         responderId: socket.userId,
+        responderName: socket.userData?.name || "Unknown Responder",
+        disconnectReason: reason,
         timestamp: new Date().toISOString(),
       });
     }
+
+    // Clean up connection info
+    delete socket.connectionInfo;
   });
 }
 

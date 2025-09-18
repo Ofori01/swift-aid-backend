@@ -23,7 +23,19 @@ import {
   updateResponderStatusEvent,
   sendEmergencyMessageEvent,
   handleDisconnection,
+  handleRejoinEvent,
 } from "../utils/socket-io/events.mjs";
+import {
+  authenticateSocket,
+  validateUserExists,
+} from "../utils/socket-io/socketAuth.mjs";
+import {
+  trackConnection,
+  trackDisconnection,
+  logConnectionEvent,
+  startPeriodicLogging,
+  monitorConnectionHealth,
+} from "../utils/socket-io/connectionMonitor.mjs";
 
 const app = express();
 app.use(express.json());
@@ -48,13 +60,26 @@ const io = new Server(httpServer, {
     methods: ["GET", "POST"],
   },
 });
+
+// Socket authentication middleware
+io.use(authenticateSocket);
+io.use(validateUserExists);
+
 app.set("io", io);
+
 io.on("connection", (socket) => {
-  console.log("Socket Connected:", socket.id);
+  // Track connection and log
+  trackConnection(socket);
+  logConnectionEvent(
+    "connect",
+    socket,
+    `Token: ${socket.tokenData?.role || "Unknown"}`
+  );
 
   // Core room management
   joinRoomEvent(socket);
   leaveRoomEvent(socket);
+  handleRejoinEvent(socket);
 
   // Emergency management
   acceptEmergencyEvent(socket);
@@ -72,8 +97,25 @@ io.on("connection", (socket) => {
   // Communication
   sendEmergencyMessageEvent(socket);
 
-  // Connection management
-  handleDisconnection(socket);
+  // Enhanced disconnection handling
+  socket.on("disconnect", (reason) => {
+    trackDisconnection(socket, reason);
+    logConnectionEvent("disconnect", socket, `Reason: ${reason}`);
+
+    // Call the original disconnect handler
+    handleDisconnection(socket).call(socket, reason);
+  });
+
+  // Handle authentication errors
+  socket.on("connect_error", (error) => {
+    logConnectionEvent("auth_failed", socket, error.message);
+    socket.emit("auth_error", { message: error.message });
+  });
+
+  // Handle other errors
+  socket.on("error", (error) => {
+    logConnectionEvent("error", socket, error.message || error);
+  });
 });
 
 const PORT =
@@ -85,6 +127,11 @@ httpServer.listen(PORT, () => {
     "Server Started",
     `on port ${PORT} in ${process.env.ENVIRONMENT} mode`
   );
+
+  // Start connection monitoring
+  console.log("🔍 Starting socket connection monitoring...");
+  startPeriodicLogging(300000); // Log stats every 5 minutes
+  monitorConnectionHealth();
 });
 
 mongoose
