@@ -85,6 +85,7 @@ export async function userLogin(req, res, next) {
       message: "Login successful",
       token,
       user: {
+        user_id: user._id,
         name: user.name,
         email: user.email,
         phone_number: user.phone_number,

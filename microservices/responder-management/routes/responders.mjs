@@ -10,6 +10,12 @@ import {
   getReportById,
   updateReport,
 } from "../controllers/report-controller.mjs";
+import {
+  getEmergencyDetails,
+  getMyEmergencies,
+  updateEmergencyResponse,
+  getMyEmergencyStats,
+} from "../controllers/emergency/emergency-controller.mjs";
 import { authorization } from "../../../utils/auth/authorization.mjs";
 
 const responders = Router();
@@ -36,6 +42,24 @@ responders.get(
   getReportById
 );
 responders.put("/reports/:reportId", authorization("responder"), updateReport);
+
+// Emergency routes
+responders.get("/emergencies", authorization("responder"), getMyEmergencies);
+responders.get(
+  "/emergency/:emergencyId",
+  authorization("responder"),
+  getEmergencyDetails
+);
+responders.put(
+  "/emergency/:emergencyId/response",
+  authorization("responder"),
+  updateEmergencyResponse
+);
+responders.get(
+  "/emergency-stats",
+  authorization("responder"),
+  getMyEmergencyStats
+);
 
 // responders.post('/updateLocation', authorization('responder'), )
 
