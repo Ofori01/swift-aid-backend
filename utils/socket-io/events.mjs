@@ -127,25 +127,38 @@ export async function addRespondersToEmergencyRoom(
   console.log(
     `🔔 Attempting to notify ${responderIds.length} responders for emergency ${emergencyId}`
   );
-  console.log(`📋 Responder IDs received (MongoDB _id):`, responderIds);
+  console.log(`📋 Responder IDs received:`, responderIds);
 
-  // Convert MongoDB _id values to responder_id values for room lookup
+  // These IDs could be either MongoDB _id or responder_id values
+  // Try both approaches to find the responders
   const responderIdMappings = [];
 
-  for (const mongoId of responderIds) {
+  for (const receivedId of responderIds) {
     try {
-      const responder = await responderModel.findById(mongoId);
+      // First try finding by responder_id (more likely to be correct)
+      let responder = await responderModel.findOne({
+        responder_id: receivedId,
+      });
+
+      // If not found, try finding by MongoDB _id
+      if (!responder) {
+        responder = await responderModel.findById(receivedId);
+      }
+
       if (responder && responder.responder_id) {
         responderIdMappings.push({
-          mongoId: mongoId.toString(),
+          mongoId: receivedId.toString(),
           responderId: responder.responder_id.toString(),
           name: responder.name,
         });
+        console.log(
+          `✅ Found responder ${responder.name} with responder_id: ${responder.responder_id}`
+        );
       } else {
-        console.log(`⚠️  Responder not found for MongoDB ID: ${mongoId}`);
+        console.log(`⚠️  Responder not found for ID: ${receivedId}`);
       }
     } catch (error) {
-      console.error(`❌ Error looking up responder ${mongoId}:`, error);
+      console.error(`❌ Error looking up responder ${receivedId}:`, error);
     }
   }
 
