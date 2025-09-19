@@ -22,7 +22,6 @@ import {
   updateEmergencyStatusEvent,
   updateResponderStatusEvent,
   sendEmergencyMessageEvent,
-  handleDisconnection,
   handleRejoinEvent,
 } from "../utils/socket-io/events.mjs";
 import {
@@ -102,8 +101,36 @@ io.on("connection", (socket) => {
     trackDisconnection(socket, reason);
     logConnectionEvent("disconnect", socket, `Reason: ${reason}`);
 
-    // Call the original disconnect handler
-    handleDisconnection(socket).call(socket, reason);
+    // Handle disconnection logic directly
+    const disconnectType =
+      reason === "client namespace disconnect" ||
+      reason === "server namespace disconnect"
+        ? "🔄 Planned"
+        : "⚠️ Unplanned";
+
+    console.log(
+      `${disconnectType} disconnection: ${socket.userType} ${
+        socket.userData?.name || "Unknown"
+      } (${socket.userId}) | Reason: ${reason} | Room: ${socket.currentRoom}`
+    );
+
+    // Only notify for emergency rooms, not personal rooms
+    if (
+      socket.userType === "responder" &&
+      socket.currentRoom &&
+      socket.currentRoom !== socket.userId.toString()
+    ) {
+      socket.to(socket.currentRoom).emit("responder-disconnected", {
+        responderId: socket.userId,
+        responderName: socket.userData?.name || "Unknown",
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Clean up any pending tasks or room memberships if needed
+    if (socket.currentRoom) {
+      socket.leave(socket.currentRoom);
+    }
   });
 
   // Handle authentication errors

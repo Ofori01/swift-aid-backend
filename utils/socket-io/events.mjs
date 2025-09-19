@@ -512,39 +512,6 @@ export function handleRejoinEvent(socket) {
 /**
  * Handle client disconnection with better logging
  */
-export function handleDisconnection(socket) {
-  return socket.on("disconnect", (reason) => {
-    const disconnectType =
-      reason === "client namespace disconnect" ||
-      reason === "server namespace disconnect"
-        ? "🔄 Planned"
-        : "⚠️ Unplanned";
-
-    console.log(
-      `${disconnectType} disconnection: ${socket.userType} ${
-        socket.userData?.name || "Unknown"
-      } (${socket.userId}) | Reason: ${reason} | Room: ${socket.currentRoom}`
-    );
-
-    // Only notify for emergency rooms, not personal rooms
-    if (
-      socket.userType === "responder" &&
-      socket.currentRoom &&
-      socket.currentRoom !== socket.userId.toString()
-    ) {
-      socket.to(socket.currentRoom).emit("responder-disconnected", {
-        responderId: socket.userId,
-        responderName: socket.userData?.name || "Unknown Responder",
-        disconnectReason: reason,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Clean up connection info
-    delete socket.connectionInfo;
-  });
-}
-
 // ============================
 // UTILITY FUNCTIONS
 // ============================
