@@ -47,13 +47,18 @@ export async function validateUserExists(socket, next) {
       case "responder":
         // For responders, the JWT contains responder_id field, not _id
         user = await responderModel.findOne({ responder_id: socket.userId });
+        console.log(
+          `🔍 Looking up responder with responder_id: ${socket.userId}`
+        );
         break;
       case "admin":
         user = await adminModel.findOne({ admin_id: socket.userId });
+        console.log(`🔍 Looking up admin with admin_id: ${socket.userId}`);
         break;
       case "user":
-        // For users, the JWT contains user_id which maps to _id
-        user = await userModel.findById(socket.userId);
+        // For users, the JWT contains user_id field, not _id
+        user = await userModel.findOne({ user_id: socket.userId });
+        console.log(`🔍 Looking up user with user_id: ${socket.userId}`);
         break;
     }
 
@@ -180,16 +185,31 @@ export async function authorizeRoomAccess(socket, roomId, userType, userId) {
       case "user":
         // Users can join their personal room or emergency rooms they created
         if (roomId === userId.toString()) {
+          console.log(
+            `✅ User ${userId} authorized for personal room ${roomId}`
+          );
           return true; // Personal room
         }
+
+        console.log(
+          `🔍 Authorization check for user ${userId} in emergency ${roomId}`
+        );
 
         // Check if user created this emergency
         const userEmergency = await emergencyRequestModel.findOne({
           _id: roomId,
           user_id: userId,
         });
+
         if (userEmergency) {
+          console.log(
+            `✅ User ${userId} authorized as creator of emergency ${roomId}`
+          );
           return true;
+        } else {
+          console.log(
+            `❌ User ${userId} NOT the creator of emergency ${roomId}`
+          );
         }
         break;
 
