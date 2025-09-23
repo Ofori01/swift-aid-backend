@@ -340,17 +340,21 @@ export function updateLocationEvent(socket) {
 export function updateEtaEvent(socket) {
   return socket.on(
     "update-eta",
-    ({ emergencyId, responderId, eta, distance }) => {
+    ({ emergencyId, responderId, eta, distance, location }) => {
       // Broadcast ETA update to emergency room (user and admin)
       socket.to(emergencyId).emit("eta-update", {
         responderId,
         eta,
         distance,
+        location: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+        },
         timestamp: new Date().toISOString(),
       });
 
       console.log(
-        `ETA update for responder ${responderId} in emergency ${emergencyId}: ${eta} minutes`
+        `ETA update for responder ${responderId} in emergency ${emergencyId}: ${eta} minutes, location: ${location.latitude},${location.longitude}`
       );
     }
   );

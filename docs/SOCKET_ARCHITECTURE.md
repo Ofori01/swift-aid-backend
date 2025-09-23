@@ -181,7 +181,11 @@ This document outlines the comprehensive WebSocket implementation for real-time 
   emergencyId: "string",
   responderId: "string",
   eta: "number",     // minutes
-  distance: "number" // meters
+  distance: "number", // meters
+  location: {        // Current responder location
+    latitude: "number",
+    longitude: "number"
+  }
 }
 ```
 
@@ -195,6 +199,10 @@ This document outlines the comprehensive WebSocket implementation for real-time 
   responderId: "string",
   eta: "number",
   distance: "number",
+  location: {        // Current responder location
+    latitude: "number",
+    longitude: "number"
+  },
   timestamp: "ISO string"
 }
 ```
@@ -372,12 +380,16 @@ function updateLocation(location, emergencyId) {
 }
 
 // Update ETA
-function updateETA(emergencyId, eta, distance) {
+function updateETA(emergencyId, eta, distance, currentLocation) {
   socket.emit("update-eta", {
     emergencyId: emergencyId,
     responderId: responderId,
     eta: eta,
     distance: distance,
+    location: {
+      latitude: currentLocation.latitude,
+      longitude: currentLocation.longitude,
+    },
   });
 }
 ```
