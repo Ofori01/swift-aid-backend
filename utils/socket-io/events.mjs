@@ -364,15 +364,45 @@ export function updateEtaEvent(socket) {
  * When responder arrives at emergency location
  */
 export function responderArrivedEvent(socket) {
-  return socket.on("responder-arrived", ({ emergencyId, responderId }) => {
-    socket.to(emergencyId).emit("responder-arrived", {
-      responderId,
-      timestamp: new Date().toISOString(),
-      message: "Responder has arrived at the emergency location",
-    });
+  return socket.on(
+    "responder-arrived",
+    async ({ emergencyId, responderId }) => {
+      try {
+        // Update emergency status to completed in database
+        await emergencyRequestModel.findByIdAndUpdate(emergencyId, {
+          status: "Completed",
+          updatedAt: new Date(),
+        });
 
-    console.log(`Responder ${responderId} arrived at emergency ${emergencyId}`);
-  });
+        // Notify all room members (including the sender)
+        io.to(emergencyId).emit("responder-arrived", {
+          responderId,
+          timestamp: new Date().toISOString(),
+          message: "Responder has arrived at the emergency location",
+          status: "Completed",
+        });
+
+        // Also emit emergency status update to ensure consistency
+        io.to(emergencyId).emit("emergency-status-update", {
+          emergencyId,
+          status: "Completed",
+          timestamp: new Date().toISOString(),
+          message: "Emergency completed - Responder has arrived at location",
+          updatedBy: responderId,
+        });
+
+        console.log(
+          `Responder ${responderId} arrived at emergency ${emergencyId} - Emergency marked as completed`
+        );
+      } catch (error) {
+        console.error("Error handling responder arrival:", error);
+        socket.emit("error", {
+          message: "Failed to process responder arrival",
+          error: error.message,
+        });
+      }
+    }
+  );
 }
 
 // ============================
