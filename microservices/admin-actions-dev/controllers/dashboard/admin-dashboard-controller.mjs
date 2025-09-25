@@ -423,43 +423,64 @@ async function getAgencyResponderIds(agencyId) {
     }))
   );
 
-  // Also check sample emergency responder IDs for comparison and what agencies they belong to
-  const sampleEmergencyResponderIds = [
-    "67fe66d2a1dc96ecb6e4d0fb",
-    "67dd660684d82ff27acf1f4d",
-    "67dd667284d82ff27acf1f5d",
-    "67dd662184d82ff27acf1f51",
-    "67fe678ea1dc96ecb6e4d103",
-    "67fe688ca1dc96ecb6e4d11f",
-    "67fe67c8a1dc96ecb6e4d10b",
-    "67fe673ba1dc96ecb6e4d0ff",
-    "67dd66bd84d82ff27acf1f69",
+  // Check the Sep 23rd emergency responder IDs specifically
+  const sep23EmergencyResponderIds = [
+    "67fe3b1ea1dc96ecb6e4cf67",
+    "67fe3b4da1dc96ecb6e4cf6b",
   ];
 
-  // Check what agencies these responders belong to
-  const sampleResponders = await responderModel
-    .find({ _id: { $in: sampleEmergencyResponderIds } })
+  // Check what agencies these Sep 23rd responders belong to
+  const sep23Responders = await responderModel
+    .find({ _id: { $in: sep23EmergencyResponderIds } })
     .select("_id name agency_id");
 
   console.log(
-    `🔍 Sample emergency responders and their agencies:`,
-    sampleResponders.map((r) => ({
+    `� Sep 23rd emergency responders and their agencies:`,
+    sep23Responders.map((r) => ({
       id: r._id.toString(),
       name: r.name,
       agency_id: r.agency_id,
     }))
   );
 
+  // Get agency names for these responders
+  if (sep23Responders.length > 0) {
+    const agencyIds = [...new Set(sep23Responders.map((r) => r.agency_id))];
+    const agencies = await agencyModel
+      .find({ agency_id: { $in: agencyIds } })
+      .select("agency_id name");
+
+    console.log(
+      `🏢 Agencies that Sep 23rd emergency responders belong to:`,
+      agencies.map((a) => ({
+        agency_id: a.agency_id,
+        name: a.name,
+      }))
+    );
+  }
+
+  // Check both _id and responder_id for matching
   const agencyResponderIds = responders.map((r) => r._id.toString());
-  const matches = sampleEmergencyResponderIds.filter((id) =>
-    agencyResponderIds.includes(id)
-  );
-  console.log(
-    `🔍 Sample emergency responder IDs that match this agency: ${matches.length}/${sampleEmergencyResponderIds.length}`,
-    matches
+  const agencyResponderIdFields = responders.map((r) =>
+    r.responder_id.toString()
   );
 
-  return responders.map((r) => r._id);
+  console.log(
+    `🔍 Sep 23rd emergency responder IDs that match this agency (_id): ${
+      sep23EmergencyResponderIds.filter((id) => agencyResponderIds.includes(id))
+        .length
+    }/${sep23EmergencyResponderIds.length}`
+  );
+  console.log(
+    `🔍 Sep 23rd emergency responder IDs that match this agency (responder_id): ${
+      sep23EmergencyResponderIds.filter((id) =>
+        agencyResponderIdFields.includes(id)
+      ).length
+    }/${sep23EmergencyResponderIds.length}`
+  );
+
+  // Return responder_id instead of _id for emergency matching
+  return responders.map((r) => r.responder_id);
 }
 
 /**
