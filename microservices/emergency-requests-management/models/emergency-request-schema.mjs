@@ -39,6 +39,7 @@ const emergencyRequestSchema = new mongoose.Schema(
         "Other",
         "Violence",
         "Rescue",
+        "Natural Disaster",
       ],
       required: true,
       default: "Other",

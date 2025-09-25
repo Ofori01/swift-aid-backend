@@ -1,6 +1,7 @@
 import emergencyRequestModel from "../models/emergency-request-schema.mjs";
 
 export async function createEmergencyRequest(req, res, next) {
+  
   const { user_description, emergency_location, imageUrl, emergency_type } =
     req.body;
   if (!user_description || !emergency_location || !emergency_type) {
