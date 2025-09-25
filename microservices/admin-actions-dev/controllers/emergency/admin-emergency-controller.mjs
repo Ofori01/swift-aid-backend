@@ -472,7 +472,7 @@ async function getAgencyResponderIds(agencyId) {
 }
 
 async function checkAgencyInvolvement(emergency, responderIds) {
-  // Check assigned_responders array
+  // Check assigned_responders array - these contain responder_id values
   const assignedResponders = emergency.assigned_responders || [];
   const isAssigned = assignedResponders.some((responderId) =>
     responderIds.some((id) => id.toString() === responderId.toString())
@@ -481,7 +481,7 @@ async function checkAgencyInvolvement(emergency, responderIds) {
   if (isAssigned) return true;
 
   // Check selected_responders nested arrays
-  const selectedResponders = emergency.selected_responders;
+  const selectedResponders = emergency.selected_responders || {};
   const isSelected = [
     ...(selectedResponders.ambulances || []),
     ...(selectedResponders.fire_trucks || []),
@@ -518,7 +518,7 @@ async function getInvolvedResponders(emergency, agencyId) {
 
   const responders = await responderModel
     .find({
-      _id: { $in: allInvolvedIds },
+      responder_id: { $in: allInvolvedIds },
       agency_id: agencyId,
     })
     .select("name badgeNumber phone status current_location");
