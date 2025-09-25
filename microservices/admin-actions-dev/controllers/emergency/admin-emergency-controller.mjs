@@ -28,9 +28,18 @@ export async function getAgencyEmergencies(req, res) {
     const agencyId = agency.agency_id; // Use agency_id instead of _id
     const responderIds = await getAgencyResponderIds(agencyId);
 
-    // Build query filters
+    console.log(
+      `🔍 getAgencyEmergencies - Admin: ${adminId}, Agency: ${agencyId}, Responders: ${responderIds.length}`
+    );
+
+    // Build query filters - check both assigned_responders and selected_responders
     const matchQuery = {
       $or: [
+        // Check assigned_responders array
+        {
+          assigned_responders: { $in: responderIds },
+        },
+        // Check selected_responders nested arrays
         {
           "selected_responders.ambulances.responder_id": { $in: responderIds },
         },
@@ -49,6 +58,8 @@ export async function getAgencyEmergencies(req, res) {
     if (emergency_type) matchQuery.emergency_type = emergency_type;
     if (severity) matchQuery.severity = severity;
 
+    console.log(`🔍 Query conditions:`, JSON.stringify(matchQuery, null, 2));
+
     // Execute query with pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const sortQuery = {};
@@ -63,6 +74,17 @@ export async function getAgencyEmergencies(req, res) {
         .limit(parseInt(limit)),
       emergencyRequestModel.countDocuments(matchQuery),
     ]);
+
+    console.log(
+      `📊 Found ${totalCount} emergencies, returning ${rawEmergencies.length} on page ${page}`
+    );
+    if (rawEmergencies.length > 0) {
+      console.log(
+        `📅 Date range - Oldest: ${
+          rawEmergencies[rawEmergencies.length - 1].createdAt
+        }, Newest: ${rawEmergencies[0].createdAt}`
+      );
+    }
 
     // Manually populate user data since user_id references user_id field, not _id
     const emergencies = await Promise.all(
@@ -353,10 +375,15 @@ export async function getOngoingEmergencies(req, res) {
     const agencyId = agency.agency_id;
     const responderIds = await getAgencyResponderIds(agencyId);
 
-    // Build query filters for ongoing emergencies
+    // Build query filters for ongoing emergencies - check both assigned_responders and selected_responders
     const matchQuery = {
       status: { $in: ["Pending", "Accepted"] }, // Only ongoing emergencies
       $or: [
+        // Check assigned_responders array
+        {
+          assigned_responders: { $in: responderIds },
+        },
+        // Check selected_responders nested arrays
         {
           "selected_responders.ambulances.responder_id": { $in: responderIds },
         },
@@ -462,9 +489,17 @@ async function getAgencyResponderIds(agencyId) {
 }
 
 async function checkAgencyInvolvement(emergency, responderIds) {
-  const selectedResponders = emergency.selected_responders;
+  // Check assigned_responders array
+  const assignedResponders = emergency.assigned_responders || [];
+  const isAssigned = assignedResponders.some((responderId) =>
+    responderIds.some((id) => id.toString() === responderId.toString())
+  );
 
-  const isInvolved = [
+  if (isAssigned) return true;
+
+  // Check selected_responders nested arrays
+  const selectedResponders = emergency.selected_responders;
+  const isSelected = [
     ...(selectedResponders.ambulances || []),
     ...(selectedResponders.fire_trucks || []),
     ...(selectedResponders.police_units || []),
@@ -474,16 +509,29 @@ async function checkAgencyInvolvement(emergency, responderIds) {
     )
   );
 
-  return isInvolved;
+  return isSelected;
 }
 
 async function getInvolvedResponders(emergency, agencyId) {
+  // Get IDs from assigned_responders array
+  const assignedResponderIds = emergency.assigned_responders || [];
+
+  // Get IDs from selected_responders nested arrays
   const selectedResponders = emergency.selected_responders;
-  const allInvolvedIds = [
+  const selectedResponderIds = [
     ...(selectedResponders.ambulances || []).map((r) => r.responder_id),
     ...(selectedResponders.fire_trucks || []).map((r) => r.responder_id),
     ...(selectedResponders.police_units || []).map((r) => r.responder_id),
   ];
+
+  // Combine all responder IDs and remove duplicates
+  const allInvolvedIds = [
+    ...assignedResponderIds,
+    ...selectedResponderIds,
+  ].filter(
+    (id, index, arr) =>
+      arr.findIndex((t) => t.toString() === id.toString()) === index
+  );
 
   const responders = await responderModel
     .find({

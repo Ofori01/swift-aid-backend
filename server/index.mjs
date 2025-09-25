@@ -48,7 +48,7 @@ app.use(userRouter);
 app.use("/responders/auth", responderAuth);
 app.use("/responders", responders);
 app.use("/emergency", emergencyRequestRouter);
-app.use("/otp", otpRouter);
+app.use("/otp", otpRouter);     
 
 const httpServer = createServer(app);
 configDotenv();

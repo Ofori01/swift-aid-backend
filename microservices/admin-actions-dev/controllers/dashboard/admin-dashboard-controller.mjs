@@ -25,12 +25,34 @@ export async function getDashboardInfo(req, res) {
     }
 
     const agencyId = agency.agency_id; // Use agency_id field, not _id
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    const currentMonth = new Date();
-    currentMonth.setDate(1);
-    currentMonth.setHours(0, 0, 0, 0);
+
+    // Fix date calculations to ensure proper boundaries
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(now.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(now.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const threeMonthsAgo = new Date(now);
+    threeMonthsAgo.setMonth(now.getMonth() - 3);
+    threeMonthsAgo.setHours(0, 0, 0, 0);
+
+    const currentMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0
+    );
+
+    console.log(
+      `📅 Date ranges - Today: ${now.toISOString()}, 30 days: ${thirtyDaysAgo.toISOString()}, 7 days: ${sevenDaysAgo.toISOString()}, Current month: ${currentMonth.toISOString()}`
+    );
 
     // Parallel execution of all dashboard queries for better performance
     const [
@@ -68,7 +90,7 @@ export async function getDashboardInfo(req, res) {
       getEmergenciesTrendData(agencyId, 30),
       getEmergenciesTrendData(agencyId, 7),
       getEmergenciesTrendData(agencyId, 90),
-      getEmergenciesTrendData(agencyId, new Date().getDate()),
+      getCurrentMonthTrendData(agencyId),
 
       // All responders in agency with basic info
       responderModel
@@ -200,9 +222,18 @@ async function getAgencyEmergenciesCount(agencyId, fromDate) {
 async function getRecentAgencyEmergencies(agencyId, limit = 10) {
   const responderIds = await getAgencyResponderIds(agencyId);
 
+  console.log(
+    `🔍 Getting recent emergencies for agency ${agencyId} with ${responderIds.length} responders`
+  );
+
   return await emergencyRequestModel
     .find({
       $or: [
+        // Check assigned_responders array
+        {
+          assigned_responders: { $in: responderIds },
+        },
+        // Check selected_responders nested arrays
         {
           "selected_responders.ambulances.responder_id": { $in: responderIds },
         },
@@ -233,6 +264,11 @@ async function getResponseTimeStats(agencyId, fromDate) {
     {
       $match: {
         $or: [
+          // Check assigned_responders array
+          {
+            assigned_responders: { $in: responderIds },
+          },
+          // Check selected_responders nested arrays
           {
             "selected_responders.ambulances.responder_id": {
               $in: responderIds,
@@ -284,6 +320,11 @@ async function getSeverityDistribution(agencyId, fromDate) {
     {
       $match: {
         $or: [
+          // Check assigned_responders array
+          {
+            assigned_responders: { $in: responderIds },
+          },
+          // Check selected_responders nested arrays
           {
             "selected_responders.ambulances.responder_id": {
               $in: responderIds,
@@ -327,6 +368,11 @@ async function getEmergencyTypeDistribution(agencyId, fromDate) {
     {
       $match: {
         $or: [
+          // Check assigned_responders array
+          {
+            assigned_responders: { $in: responderIds },
+          },
+          // Check selected_responders nested arrays
           {
             "selected_responders.ambulances.responder_id": {
               $in: responderIds,
@@ -366,7 +412,17 @@ async function getEmergencyTypeDistribution(agencyId, fromDate) {
 async function getAgencyResponderIds(agencyId) {
   const responders = await responderModel
     .find({ agency_id: agencyId })
-    .select("_id");
+    .select("_id responder_id name");
+
+  console.log(
+    `👥 Found ${responders.length} responders for agency ${agencyId}:`,
+    responders.map((r) => ({
+      id: r._id,
+      responder_id: r.responder_id,
+      name: r.name,
+    }))
+  );
+
   return responders.map((r) => r._id);
 }
 
@@ -399,6 +455,11 @@ async function getEmergenciesTrendData(agencyId, days) {
     dateRange.map(async ({ date, start, end }) => {
       const count = await emergencyRequestModel.countDocuments({
         $or: [
+          // Check assigned_responders array
+          {
+            assigned_responders: { $in: responderIds },
+          },
+          // Check selected_responders nested arrays
           {
             "selected_responders.ambulances.responder_id": {
               $in: responderIds,
@@ -470,6 +531,11 @@ async function getEmergenciesTodayTrend(agencyId) {
 
     const count = await emergencyRequestModel.countDocuments({
       $or: [
+        // Check assigned_responders array
+        {
+          assigned_responders: { $in: responderIds },
+        },
+        // Check selected_responders nested arrays
         {
           "selected_responders.ambulances.responder_id": { $in: responderIds },
         },
@@ -499,6 +565,14 @@ async function getEmergenciesTodayTrend(agencyId) {
   // Calculate total count for today
   const totalCount = hourlyData.reduce((sum, hour) => sum + hour.count, 0);
 
+  console.log(
+    `📊 Today's emergency count for agency ${agencyId}: ${totalCount} emergencies`
+  );
+  console.log(
+    `🕐 Hourly breakdown:`,
+    hourlyData.filter((h) => h.count > 0)
+  );
+
   return {
     date: today.toISOString().split("T")[0], // YYYY-MM-DD format
     day: today.toLocaleDateString("en-US", { weekday: "long" }), // Monday, Tuesday, etc.
@@ -520,6 +594,95 @@ async function getEmergenciesTodayTrend(agencyId) {
       night_count: hourlyData.slice(0, 6).reduce((sum, h) => sum + h.count, 0), // 12 AM - 6 AM
     },
   };
+}
+
+/**
+ * Get current month's emergency trend data
+ * @param {string} agencyId - The agency ID
+ * @returns {Array} Array of daily data for current month
+ */
+async function getCurrentMonthTrendData(agencyId) {
+  const responderIds = await getAgencyResponderIds(agencyId);
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  // Generate date range for current month
+  const dateRange = [];
+  for (
+    let d = new Date(startOfMonth);
+    d <= endOfMonth;
+    d.setDate(d.getDate() + 1)
+  ) {
+    const date = new Date(d);
+    dateRange.push({
+      date: date.toISOString().split("T")[0], // YYYY-MM-DD format
+      start: new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        0,
+        0,
+        0,
+        0
+      ),
+      end: new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        23,
+        59,
+        59,
+        999
+      ),
+    });
+  }
+
+  // Get emergency counts for each day in current month
+  const trendData = await Promise.all(
+    dateRange.map(async ({ date, start, end }) => {
+      const count = await emergencyRequestModel.countDocuments({
+        $or: [
+          // Check assigned_responders array
+          {
+            assigned_responders: { $in: responderIds },
+          },
+          // Check selected_responders nested arrays
+          {
+            "selected_responders.ambulances.responder_id": {
+              $in: responderIds,
+            },
+          },
+          {
+            "selected_responders.fire_trucks.responder_id": {
+              $in: responderIds,
+            },
+          },
+          {
+            "selected_responders.police_units.responder_id": {
+              $in: responderIds,
+            },
+          },
+        ],
+        createdAt: {
+          $gte: start,
+          $lte: end,
+        },
+      });
+
+      return {
+        date,
+        count,
+        day: start.toLocaleDateString("en-US", { weekday: "short" }), // Mon, Tue, etc.
+        month: start.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }), // Jan 15, Feb 3, etc.
+      };
+    })
+  );
+
+  return trendData;
 }
 
 /**
