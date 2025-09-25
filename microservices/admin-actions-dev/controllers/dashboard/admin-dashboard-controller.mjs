@@ -417,11 +417,39 @@ async function getAgencyResponderIds(agencyId) {
   console.log(
     `👥 Found ${responders.length} responders for agency ${agencyId}:`,
     responders.map((r) => ({
-      id: r._id,
+      id: r._id.toString(),
       responder_id: r.responder_id,
       name: r.name,
     }))
   );
+
+  // Also check sample emergency responder IDs for comparison and what agencies they belong to
+  const sampleEmergencyResponderIds = [
+    "67fe66d2a1dc96ecb6e4d0fb",
+    "67dd660684d82ff27acf1f4d",
+    "67dd667284d82ff27acf1f5d",
+    "67dd662184d82ff27acf1f51",
+    "67fe678ea1dc96ecb6e4d103",
+    "67fe688ca1dc96ecb6e4d11f",
+    "67fe67c8a1dc96ecb6e4d10b",
+    "67fe673ba1dc96ecb6e4d0ff",
+    "67dd66bd84d82ff27acf1f69"
+  ];
+
+  // Check what agencies these responders belong to
+  const sampleResponders = await responderModel
+    .find({ _id: { $in: sampleEmergencyResponderIds } })
+    .select("_id name agency_id");
+  
+  console.log(`🔍 Sample emergency responders and their agencies:`, sampleResponders.map(r => ({
+    id: r._id.toString(),
+    name: r.name,
+    agency_id: r.agency_id
+  })));
+
+  const agencyResponderIds = responders.map((r) => r._id.toString());
+  const matches = sampleEmergencyResponderIds.filter(id => agencyResponderIds.includes(id));
+  console.log(`🔍 Sample emergency responder IDs that match this agency: ${matches.length}/${sampleEmergencyResponderIds.length}`, matches);
 
   return responders.map((r) => r._id);
 }
@@ -453,7 +481,7 @@ async function getEmergenciesTrendData(agencyId, days) {
   // Get emergency counts for each day
   const trendData = await Promise.all(
     dateRange.map(async ({ date, start, end }) => {
-      const count = await emergencyRequestModel.countDocuments({
+      const query = {
         $or: [
           // Check assigned_responders array
           {
@@ -480,7 +508,27 @@ async function getEmergenciesTrendData(agencyId, days) {
           $gte: start,
           $lte: end,
         },
-      });
+      };
+
+      const count = await emergencyRequestModel.countDocuments(query);
+
+      // Debug specific dates
+      if (date === "2025-09-23" || date === "2025-09-24" || date === "2025-09-25") {
+        console.log(`🔍 DEBUG ${date}: Found ${count} emergencies`);
+        
+        // Get actual emergency documents for debugging
+        const emergencies = await emergencyRequestModel.find(query).select("_id createdAt selected_responders assigned_responders").limit(3);
+        console.log(`📄 Sample emergencies for ${date}:`, emergencies.map(e => ({
+          id: e._id.toString(),
+          createdAt: e.createdAt,
+          hasAssignedResponders: e.assigned_responders?.length > 0,
+          hasSelectedResponders: {
+            ambulances: e.selected_responders?.ambulances?.length > 0,
+            fire_trucks: e.selected_responders?.fire_trucks?.length > 0,
+            police_units: e.selected_responders?.police_units?.length > 0
+          }
+        })));
+      }
 
       return {
         date,
