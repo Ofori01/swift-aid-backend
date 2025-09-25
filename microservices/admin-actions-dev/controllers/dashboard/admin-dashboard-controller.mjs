@@ -433,23 +433,31 @@ async function getAgencyResponderIds(agencyId) {
     "67fe688ca1dc96ecb6e4d11f",
     "67fe67c8a1dc96ecb6e4d10b",
     "67fe673ba1dc96ecb6e4d0ff",
-    "67dd66bd84d82ff27acf1f69"
+    "67dd66bd84d82ff27acf1f69",
   ];
 
   // Check what agencies these responders belong to
   const sampleResponders = await responderModel
     .find({ _id: { $in: sampleEmergencyResponderIds } })
     .select("_id name agency_id");
-  
-  console.log(`🔍 Sample emergency responders and their agencies:`, sampleResponders.map(r => ({
-    id: r._id.toString(),
-    name: r.name,
-    agency_id: r.agency_id
-  })));
+
+  console.log(
+    `🔍 Sample emergency responders and their agencies:`,
+    sampleResponders.map((r) => ({
+      id: r._id.toString(),
+      name: r.name,
+      agency_id: r.agency_id,
+    }))
+  );
 
   const agencyResponderIds = responders.map((r) => r._id.toString());
-  const matches = sampleEmergencyResponderIds.filter(id => agencyResponderIds.includes(id));
-  console.log(`🔍 Sample emergency responder IDs that match this agency: ${matches.length}/${sampleEmergencyResponderIds.length}`, matches);
+  const matches = sampleEmergencyResponderIds.filter((id) =>
+    agencyResponderIds.includes(id)
+  );
+  console.log(
+    `🔍 Sample emergency responder IDs that match this agency: ${matches.length}/${sampleEmergencyResponderIds.length}`,
+    matches
+  );
 
   return responders.map((r) => r._id);
 }
@@ -513,21 +521,31 @@ async function getEmergenciesTrendData(agencyId, days) {
       const count = await emergencyRequestModel.countDocuments(query);
 
       // Debug specific dates
-      if (date === "2025-09-23" || date === "2025-09-24" || date === "2025-09-25") {
+      if (
+        date === "2025-09-23" ||
+        date === "2025-09-24" ||
+        date === "2025-09-25"
+      ) {
         console.log(`🔍 DEBUG ${date}: Found ${count} emergencies`);
-        
+
         // Get actual emergency documents for debugging
-        const emergencies = await emergencyRequestModel.find(query).select("_id createdAt selected_responders assigned_responders").limit(3);
-        console.log(`📄 Sample emergencies for ${date}:`, emergencies.map(e => ({
-          id: e._id.toString(),
-          createdAt: e.createdAt,
-          hasAssignedResponders: e.assigned_responders?.length > 0,
-          hasSelectedResponders: {
-            ambulances: e.selected_responders?.ambulances?.length > 0,
-            fire_trucks: e.selected_responders?.fire_trucks?.length > 0,
-            police_units: e.selected_responders?.police_units?.length > 0
-          }
-        })));
+        const emergencies = await emergencyRequestModel
+          .find(query)
+          .select("_id createdAt selected_responders assigned_responders")
+          .limit(3);
+        console.log(
+          `📄 Sample emergencies for ${date}:`,
+          emergencies.map((e) => ({
+            id: e._id.toString(),
+            createdAt: e.createdAt,
+            hasAssignedResponders: e.assigned_responders?.length > 0,
+            hasSelectedResponders: {
+              ambulances: e.selected_responders?.ambulances?.length > 0,
+              fire_trucks: e.selected_responders?.fire_trucks?.length > 0,
+              police_units: e.selected_responders?.police_units?.length > 0,
+            },
+          }))
+        );
       }
 
       return {
