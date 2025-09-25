@@ -101,6 +101,7 @@ Instructions:
 5. Provide a justification.
 6. Assign a priority score (1-100).
 7. Estimate response time in minutes.
+8. The resources are scarce and in limited number so ensure optimal number of fire trucks, police units, ambulances are used.
 Output Format:
 Output a valid JSON object that conforms exactly to the following schema. Do not include any markdown formatting or extra text.
 Schema: ${jsonSchema}`,
