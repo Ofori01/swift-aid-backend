@@ -76,6 +76,11 @@ export async function getResponseTimeTrends(req, res) {
       {
         $match: {
           $or: [
+            // Check assigned_responders array
+            {
+              assigned_responders: { $in: responderIds },
+            },
+            // Check selected_responders nested arrays
             {
               "selected_responders.ambulances.responder_id": {
                 $in: responderIds,
@@ -166,12 +171,17 @@ export async function getResponderUtilization(req, res) {
       {
         $lookup: {
           from: "emergencyrequests",
-          let: { responderId: "$_id" },
+          let: { responderId: "$responder_id" },
           pipeline: [
             {
               $match: {
                 $expr: {
                   $or: [
+                    // Check assigned_responders array
+                    {
+                      $in: ["$$responderId", "$assigned_responders"],
+                    },
+                    // Check selected_responders nested arrays
                     {
                       $in: [
                         "$$responderId",
@@ -252,6 +262,11 @@ async function getPerformanceMetrics(agencyId, fromDate) {
     {
       $match: {
         $or: [
+          // Check assigned_responders array
+          {
+            assigned_responders: { $in: responderIds },
+          },
+          // Check selected_responders nested arrays
           {
             "selected_responders.ambulances.responder_id": {
               $in: responderIds,
@@ -310,6 +325,11 @@ async function getTrendAnalytics(agencyId, fromDate, daysBack) {
     {
       $match: {
         $or: [
+          // Check assigned_responders array
+          {
+            assigned_responders: { $in: responderIds },
+          },
+          // Check selected_responders nested arrays
           {
             "selected_responders.ambulances.responder_id": {
               $in: responderIds,
@@ -394,6 +414,6 @@ async function getOverviewAnalytics(agencyId, fromDate) {
 async function getAgencyResponderIds(agencyId) {
   const responders = await responderModel
     .find({ agency_id: agencyId })
-    .select("_id");
-  return responders.map((r) => r._id);
+    .select("responder_id");
+  return responders.map((r) => r.responder_id);
 }

@@ -50,10 +50,6 @@ export async function getDashboardInfo(req, res) {
       0
     );
 
-    console.log(
-      `📅 Date ranges - Today: ${now.toISOString()}, 30 days: ${thirtyDaysAgo.toISOString()}, 7 days: ${sevenDaysAgo.toISOString()}, Current month: ${currentMonth.toISOString()}`
-    );
-
     // Parallel execution of all dashboard queries for better performance
     const [
       totalResponders,
@@ -221,10 +217,6 @@ async function getAgencyEmergenciesCount(agencyId, fromDate) {
  */
 async function getRecentAgencyEmergencies(agencyId, limit = 10) {
   const responderIds = await getAgencyResponderIds(agencyId);
-
-  console.log(
-    `🔍 Getting recent emergencies for agency ${agencyId} with ${responderIds.length} responders`
-  );
 
   return await emergencyRequestModel
     .find({
@@ -412,72 +404,7 @@ async function getEmergencyTypeDistribution(agencyId, fromDate) {
 async function getAgencyResponderIds(agencyId) {
   const responders = await responderModel
     .find({ agency_id: agencyId })
-    .select("_id responder_id name");
-
-  console.log(
-    `👥 Found ${responders.length} responders for agency ${agencyId}:`,
-    responders.map((r) => ({
-      id: r._id.toString(),
-      responder_id: r.responder_id,
-      name: r.name,
-    }))
-  );
-
-  // Check the Sep 23rd emergency responder IDs specifically
-  const sep23EmergencyResponderIds = [
-    "67fe3b1ea1dc96ecb6e4cf67",
-    "67fe3b4da1dc96ecb6e4cf6b",
-  ];
-
-  // Check what agencies these Sep 23rd responders belong to
-  const sep23Responders = await responderModel
-    .find({ _id: { $in: sep23EmergencyResponderIds } })
-    .select("_id name agency_id");
-
-  console.log(
-    `� Sep 23rd emergency responders and their agencies:`,
-    sep23Responders.map((r) => ({
-      id: r._id.toString(),
-      name: r.name,
-      agency_id: r.agency_id,
-    }))
-  );
-
-  // Get agency names for these responders
-  if (sep23Responders.length > 0) {
-    const agencyIds = [...new Set(sep23Responders.map((r) => r.agency_id))];
-    const agencies = await agencyModel
-      .find({ agency_id: { $in: agencyIds } })
-      .select("agency_id name");
-
-    console.log(
-      `🏢 Agencies that Sep 23rd emergency responders belong to:`,
-      agencies.map((a) => ({
-        agency_id: a.agency_id,
-        name: a.name,
-      }))
-    );
-  }
-
-  // Check both _id and responder_id for matching
-  const agencyResponderIds = responders.map((r) => r._id.toString());
-  const agencyResponderIdFields = responders.map((r) =>
-    r.responder_id.toString()
-  );
-
-  console.log(
-    `🔍 Sep 23rd emergency responder IDs that match this agency (_id): ${
-      sep23EmergencyResponderIds.filter((id) => agencyResponderIds.includes(id))
-        .length
-    }/${sep23EmergencyResponderIds.length}`
-  );
-  console.log(
-    `🔍 Sep 23rd emergency responder IDs that match this agency (responder_id): ${
-      sep23EmergencyResponderIds.filter((id) =>
-        agencyResponderIdFields.includes(id)
-      ).length
-    }/${sep23EmergencyResponderIds.length}`
-  );
+    .select("responder_id");
 
   // Return responder_id instead of _id for emergency matching
   return responders.map((r) => r.responder_id);
@@ -540,34 +467,6 @@ async function getEmergenciesTrendData(agencyId, days) {
       };
 
       const count = await emergencyRequestModel.countDocuments(query);
-
-      // Debug specific dates
-      if (
-        date === "2025-09-23" ||
-        date === "2025-09-24" ||
-        date === "2025-09-25"
-      ) {
-        console.log(`🔍 DEBUG ${date}: Found ${count} emergencies`);
-
-        // Get actual emergency documents for debugging
-        const emergencies = await emergencyRequestModel
-          .find(query)
-          .select("_id createdAt selected_responders assigned_responders")
-          .limit(3);
-        console.log(
-          `📄 Sample emergencies for ${date}:`,
-          emergencies.map((e) => ({
-            id: e._id.toString(),
-            createdAt: e.createdAt,
-            hasAssignedResponders: e.assigned_responders?.length > 0,
-            hasSelectedResponders: {
-              ambulances: e.selected_responders?.ambulances?.length > 0,
-              fire_trucks: e.selected_responders?.fire_trucks?.length > 0,
-              police_units: e.selected_responders?.police_units?.length > 0,
-            },
-          }))
-        );
-      }
 
       return {
         date,
@@ -651,14 +550,6 @@ async function getEmergenciesTodayTrend(agencyId) {
 
   // Calculate total count for today
   const totalCount = hourlyData.reduce((sum, hour) => sum + hour.count, 0);
-
-  console.log(
-    `📊 Today's emergency count for agency ${agencyId}: ${totalCount} emergencies`
-  );
-  console.log(
-    `🕐 Hourly breakdown:`,
-    hourlyData.filter((h) => h.count > 0)
-  );
 
   return {
     date: today.toISOString().split("T")[0], // YYYY-MM-DD format

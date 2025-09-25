@@ -28,10 +28,6 @@ export async function getAgencyEmergencies(req, res) {
     const agencyId = agency.agency_id; // Use agency_id instead of _id
     const responderIds = await getAgencyResponderIds(agencyId);
 
-    console.log(
-      `🔍 getAgencyEmergencies - Admin: ${adminId}, Agency: ${agencyId}, Responders: ${responderIds.length}`
-    );
-
     // Build query filters - check both assigned_responders and selected_responders
     const matchQuery = {
       $or: [
@@ -58,8 +54,6 @@ export async function getAgencyEmergencies(req, res) {
     if (emergency_type) matchQuery.emergency_type = emergency_type;
     if (severity) matchQuery.severity = severity;
 
-    console.log(`🔍 Query conditions:`, JSON.stringify(matchQuery, null, 2));
-
     // Execute query with pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const sortQuery = {};
@@ -74,17 +68,6 @@ export async function getAgencyEmergencies(req, res) {
         .limit(parseInt(limit)),
       emergencyRequestModel.countDocuments(matchQuery),
     ]);
-
-    console.log(
-      `📊 Found ${totalCount} emergencies, returning ${rawEmergencies.length} on page ${page}`
-    );
-    if (rawEmergencies.length > 0) {
-      console.log(
-        `📅 Date range - Oldest: ${
-          rawEmergencies[rawEmergencies.length - 1].createdAt
-        }, Newest: ${rawEmergencies[0].createdAt}`
-      );
-    }
 
     // Manually populate user data since user_id references user_id field, not _id
     const emergencies = await Promise.all(
@@ -484,8 +467,8 @@ export async function getOngoingEmergencies(req, res) {
 async function getAgencyResponderIds(agencyId) {
   const responders = await responderModel
     .find({ agency_id: agencyId })
-    .select("_id");
-  return responders.map((r) => r._id);
+    .select("responder_id");
+  return responders.map((r) => r.responder_id);
 }
 
 async function checkAgencyInvolvement(emergency, responderIds) {
