@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { GridFSBucket } from "mongodb";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import cors from 'cors';
 import adminRouter from "../microservices/admin-actions-dev/routes/adminRoutes.mjs";
 import adminAuthRouter from "../microservices/admin-actions-dev/routes/adminAuthRoutes.mjs";
 import userRouter from "../microservices/user-management/routes/userRoute.mjs";
@@ -38,6 +39,7 @@ import {
 
 const app = express();
 app.use(express.json());
+app.use(cors())
 
 // Admin routes
 app.use("/admin/auth", adminAuthRouter);
