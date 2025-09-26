@@ -55,7 +55,7 @@ export async function getEmergencyDetails(req, res, next) {
     // Fetch emergency details with populated references
     const emergency = await emergencyRequestModel
       .findById(emergencyId)
-      .populate("user_id", "name phone email")
+      .populate("user_id", "name phone_number email")
       .populate("assigned_admin_id", "name")
       .lean();
 
@@ -102,9 +102,10 @@ export async function getEmergencyDetails(req, res, next) {
       },
       user: {
         name: emergency.user_id?.name || "Anonymous",
-        phone: emergency.user_id?.phone || "Not provided",
+        phone: emergency.user_id?.phone_number || "Not provided",
         // Don't expose email for privacy
       },
+      image_id: emergency.image || null,
       admin_notes: emergency.admin_notes,
       assigned_admin: emergency.assigned_admin_id?.name || null,
       assignment_details: responderAssignment,
