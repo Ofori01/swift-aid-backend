@@ -52,20 +52,36 @@ export async function getEmergencyDetails(req, res, next) {
       });
     }
 
-    // Fetch emergency details with populated references
-    const emergency = await emergencyRequestModel
+    // Fetch emergency details
+    const rawEmergency = await emergencyRequestModel
       .findById(emergencyId)
-      .populate("user_id", "name phone_number email")
       .populate("assigned_admin_id", "name")
       .lean();
 
-    if (!emergency) {
+    if (!rawEmergency) {
       return res.status(404).json({
         success: false,
         message: "Emergency not found",
         code: "EMERGENCY_NOT_FOUND",
       });
     }
+
+    // Manually populate user data since user_id references user_id field, not _id
+    const UserModel = (
+      await import("../../../user-management/models/userSchema.mjs")
+    ).default;
+    let userData = null;
+    if (rawEmergency.user_id) {
+      userData = await UserModel.findOne({ user_id: rawEmergency.user_id })
+        .select("name phone_number email")
+        .lean();
+    }
+
+    // Create emergency object with populated user data
+    const emergency = {
+      ...rawEmergency,
+      user_id: userData,
+    };
 
     // Validate that the responder is assigned to this emergency
     const isAssigned = await validateResponderAssignment(
