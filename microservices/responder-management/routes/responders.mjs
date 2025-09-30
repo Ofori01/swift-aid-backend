@@ -1,0 +1,66 @@
+import { Router } from "express";
+import {
+  getAllResponders,
+  getResponderProfile,
+  updateResponderStatus,
+} from "../controllers/responders/responder-controller.mjs";
+import {
+  submitReport,
+  getMyReports,
+  getReportById,
+  updateReport,
+} from "../controllers/report-controller.mjs";
+import {
+  getEmergencyDetails,
+  getMyEmergencies,
+  updateEmergencyResponse,
+  getMyEmergencyStats,
+} from "../controllers/emergency/emergency-controller.mjs";
+import { authorization } from "../../../utils/auth/authorization.mjs";
+
+const responders = Router();
+
+// Profile and status routes
+responders.get(
+  "/profile",
+  authorization("responder", "admin"),
+  getResponderProfile
+);
+responders.get("/all", getAllResponders);
+responders.put(
+  "/update-status",
+  authorization("responder"),
+  updateResponderStatus
+);
+
+// Report routes
+responders.post("/reports", authorization("responder"), submitReport);
+responders.get("/reports", authorization("responder"), getMyReports);
+responders.get(
+  "/reports/:reportId",
+  authorization("responder", "admin"),
+  getReportById
+);
+responders.put("/reports/:reportId", authorization("responder"), updateReport);
+
+// Emergency routes
+responders.get("/emergencies", authorization("responder"), getMyEmergencies);
+responders.get(
+  "/emergency/:emergencyId",
+  authorization("responder"),
+  getEmergencyDetails
+);
+responders.put(
+  "/emergency/:emergencyId/response",
+  authorization("responder"),
+  updateEmergencyResponse
+);
+responders.get(
+  "/emergency-stats",
+  authorization("responder"),
+  getMyEmergencyStats
+);
+
+// responders.post('/updateLocation', authorization('responder'), )
+
+export default responders;

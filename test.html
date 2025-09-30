@@ -1,0 +1,10 @@
+<script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+<script>
+    const socket = io('http://localhost:8080');
+    socket.on('connect', () => {
+        console.log('Connected:', socket.id);
+    });
+    socket.on('connect_error', (err) => {
+        console.error('Connect error:', err);
+    });
+</script>
